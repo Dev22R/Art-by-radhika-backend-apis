@@ -1,0 +1,701 @@
+{
+  "info": {
+    "_postman_id": "a91b8d4e-1284-482a-9cb5-ef59781cf201",
+    "name": "Mehndi Booking & Auth API - Postman Collection",
+    "description": "Production API Collection with Mobile Auth, Complete Profile, Address Management, Full Booking Lifecycle (Pending, Confirmed, Completed, Cancelled, Admin controls), Products with Redis Caching, and BullMQ Background Jobs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "addressId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Authentication & Profile",
+      "item": [
+        {
+          "name": "1.1 Signup (Mobile & Password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "    }",
+                  "    if (json.data && json.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "    }",
+                  "    console.log('✅ Registered! Access & Refresh tokens saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"password\": \"Secret@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "description": "Sign up with 10-digit mobile number and password only. Sets isProfileCompleted to false."
+          }
+        },
+        {
+          "name": "1.2 Login (Mobile & Password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "    }",
+                  "    if (json.data && json.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "    }",
+                  "    console.log('✅ Logged In! Access & Refresh tokens updated.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"password\": \"Secret@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Log in with phone number and password."
+          }
+        },
+        {
+          "name": "1.3 Complete Profile (Separate Endpoint)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Sharma\",\n  \"email\": \"priya.sharma@example.com\",\n  \"profileImage\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/complete-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "complete-profile"]
+            },
+            "description": "Separate endpoint to complete user profile. Sets isProfileCompleted: true and updates Redis cache."
+          }
+        },
+        {
+          "name": "1.4 Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Fetch current authenticated user profile from Redis cache / MongoDB."
+          }
+        },
+        {
+          "name": "1.5 Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Sharma (Updated)\",\n  \"email\": \"priya.new@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "Update specific profile fields."
+          }
+        },
+        {
+          "name": "1.6 Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "        console.log('✅ Access token refreshed successfully.');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh-token"]
+            },
+            "description": "Exchange a valid Refresh Token for a new Access Token."
+          }
+        },
+        {
+          "name": "1.7 Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Blacklists JWT token in Redis and invalidates sessions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Address Management",
+      "item": [
+        {
+          "name": "2.1 Add Address",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.address && json.data.address._id) {",
+                  "        pm.collectionVariables.set('addressId', json.data.address._id);",
+                  "        console.log('✅ Address saved! addressId:', json.data.address._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"wedding\",\n  \"addressLine\": \"Flat 402, Royal Palms Residency\",\n  \"area\": \"Jubilee Hills\",\n  \"city\": \"Hyderabad\",\n  \"state\": \"Telangana\",\n  \"pincode\": \"500033\",\n  \"landmark\": \"Near Grand Palace Hall\",\n  \"latitude\": 17.4325,\n  \"longitude\": 78.4071,\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "addresses"]
+            },
+            "description": "Add a new mehndi ceremony venue address."
+          }
+        },
+        {
+          "name": "2.2 Get User Addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "addresses"]
+            },
+            "description": "Get all saved addresses for the logged in user (cached in Redis)."
+          }
+        },
+        {
+          "name": "2.3 Update Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressLine\": \"Flat 402, Block B, Royal Palms Residency\",\n  \"landmark\": \"Opposite Metro Gate 2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "addresses", "{{addressId}}"]
+            },
+            "description": "Update specific address details."
+          }
+        },
+        {
+          "name": "2.4 Set Default Address",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}/default",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "addresses", "{{addressId}}", "default"]
+            },
+            "description": "Mark selected address as primary default address."
+          }
+        },
+        {
+          "name": "2.5 Delete Address",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "addresses", "{{addressId}}"]
+            },
+            "description": "Soft-delete address."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Mehndi Booking Module",
+      "item": [
+        {
+          "name": "3.1 Create Booking Request (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.booking && json.data.booking._id) {",
+                  "        pm.collectionVariables.set('bookingId', json.data.booking._id);",
+                  "        console.log('✅ Booking created! bookingId:', json.data.booking._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingType\": \"wedding\",\n  \"addressId\": \"{{addressId}}\",\n  \"eventName\": \"Ananya & Rohan Sangeet & Mehndi Night\",\n  \"brideName\": \"Ananya Verma\",\n  \"groomName\": \"Rohan Singhania\",\n  \"numberOfPeople\": 6,\n  \"selectedDesigns\": [\n    {\n      \"designId\": \"60d5ec49f1b2c8b1f8e4e1a1\",\n      \"designName\": \"Royal Rajasthani Bridal Full Hand\",\n      \"designImage\": \"https://images.unsplash.com/photo-1596704017254-9b121068fb31\",\n      \"price\": 4500,\n      \"quantity\": 1,\n      \"notes\": \"Dark stain cone preference\"\n    },\n    {\n      \"designId\": \"60d5ec49f1b2c8b1f8e4e1a2\",\n      \"designName\": \"Arabic Floral Guest Mehndi\",\n      \"designImage\": \"https://images.unsplash.com/photo-1560066984-138dadb4c035\",\n      \"price\": 800,\n      \"quantity\": 5,\n      \"notes\": \"Both side palm for bridesmaids\"\n    }\n  ],\n  \"selectedPackage\": {\n    \"packageId\": \"60d5ec49f1b2c8b1f8e4e1a3\",\n    \"packageName\": \"Grand Wedding Mehndi Package\",\n    \"description\": \"Includes Bridal both hands & feet + 5 guests\",\n    \"price\": 8500\n  },\n  \"referencePhotos\": [\n    {\n      \"url\": \"https://images.unsplash.com/photo-1596704017254-9b121068fb31\",\n      \"originalName\": \"bride_design_ref1.jpg\"\n    }\n  ],\n  \"customerRequirements\": \"Natural organic henna only. Require 2 senior artists.\",\n  \"specialInstructions\": \"Ceremony begins at 4:00 PM promptly.\",\n  \"bookingSlots\": [\n    {\n      \"date\": \"2026-11-20T00:00:00.000Z\",\n      \"startTime\": \"15:30\",\n      \"endTime\": \"20:00\",\n      \"artistCount\": 2\n    }\n  ],\n  \"artistCharge\": 500,\n  \"travelCharge\": 300,\n  \"discount\": 500,\n  \"tax\": 250\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Create a new mehndi booking request with selected designs, slots, and venue address. Initial status: pending."
+          }
+        },
+        {
+          "name": "3.2 Get My Bookings (Status Filter & Redis Cached)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings?status=pending&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"],
+              "query": [
+                { "key": "status", "value": "pending", "description": "Filter by status: pending, confirmed, completed, cancelled, etc." },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Get all bookings created by current user. Redis cached for fast retrieval."
+          }
+        },
+        {
+          "name": "3.3 Get Booking By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}"]
+            },
+            "description": "Get complete booking details by booking ID."
+          }
+        },
+        {
+          "name": "3.4 Cancel Booking (User)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Wedding event date shifted due to venue unavailability.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "cancel"]
+            },
+            "description": "Cancel booking by customer (allowed on pending/confirmed bookings)."
+          }
+        },
+        {
+          "name": "3.5 [Admin] Get All Bookings (Search & Filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/all?status=pending,confirmed&search=Ananya&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "all"],
+              "query": [
+                { "key": "status", "value": "pending,confirmed" },
+                { "key": "search", "value": "Ananya" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Admin endpoint to list all bookings across users with filtering by status, search, and pagination."
+          }
+        },
+        {
+          "name": "3.6 [Admin] Update Booking Status (Pending -> Confirmed / Completed)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"adminNotes\": \"Booking verified and slots locked for client.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "status"]
+            },
+            "description": "Admin endpoint to update booking status. Allowed: pending, awaiting_payment, confirmed, in_progress, completed, cancelled, rejected, rescheduled."
+          }
+        },
+        {
+          "name": "3.7 [Admin] Assign Artists to Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotIndex\": 0,\n  \"artistIds\": [\n    \"60d5ec49f1b2c8b1f8e4e1b1\",\n    \"60d5ec49f1b2c8b1f8e4e1b2\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/assign-artists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "assign-artists"]
+            },
+            "description": "Assign mehndi artists to booking slots and update artist assignment status."
+          }
+        },
+        {
+          "name": "3.8 [Admin] Update Payment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentStatus\": \"paid\",\n  \"paidAmount\": 13050\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "payment"]
+            },
+            "description": "Update payment status (pending, partial, paid, refunded) and calculate remaining balance."
+          }
+        },
+        {
+          "name": "3.9 [Admin] Update Admin Notes",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminNotes\": \"Client requested organic eucalyptus henna paste. Artists briefed.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/admin-notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "admin-notes"]
+            },
+            "description": "Update internal administration notes for the booking."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Products & Designs (Redis Caching)",
+      "item": [
+        {
+          "name": "4.1 Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data._id) {",
+                  "        pm.collectionVariables.set('productId', json.data._id);",
+                  "        console.log('✅ Product created! productId:', json.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bridal Arabic Full Hand Mehndi Design\",\n  \"description\": \"Intricate Arabic floral and geometric bridal mehndi package for both hands.\",\n  \"price\": 3500,\n  \"category\": \"Bridal\",\n  \"rating\": 4.9,\n  \"purchaseCount\": 45\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Create a new product / design service."
+          }
+        },
+        {
+          "name": "4.2 Get All Products (Cached in Redis)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch paginated products list. Uses Redis caching for sub-millisecond responses."
+          }
+        },
+        {
+          "name": "4.3 Get Product by ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}"]
+            },
+            "description": "Fetch a single product by its ObjectId."
+          }
+        },
+        {
+          "name": "4.4 Delete Product (Clears Redis Cache)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}"]
+            },
+            "description": "Delete product and automatically evict related Redis cache keys."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Redis Demos & BullMQ Queues",
+      "item": [
+        {
+          "name": "5.1 Get Cached Data Demo",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/cached-data",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "cached-data"]
+            },
+            "description": "Demonstrates Redis caching speed vs simulated slow DB lookup."
+          }
+        },
+        {
+          "name": "5.2 Set Key-Value in Redis",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"promo_code:MEHNDI2026\",\n  \"value\": { \"discount\": 20, \"type\": \"percentage\" },\n  \"ttl\": 600\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/cache",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "cache"]
+            },
+            "description": "Set a raw key-value pair in Redis with custom TTL in seconds."
+          }
+        },
+        {
+          "name": "5.3 Dispatch BullMQ Background Job",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskName\": \"send_booking_notification\",\n  \"payload\": {\n    \"phone\": \"9876543210\",\n    \"bookingId\": \"BK-261007-8492\",\n    \"service\": \"Bridal Mehndi\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/queue-job",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "queue-job"]
+            },
+            "description": "Enqueue an asynchronous background job handled by BullMQ worker."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. System & Health Check",
+      "item": [
+        {
+          "name": "6.1 Root API Info",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Returns all registered API endpoints, status, and documentation links."
+          }
+        },
+        {
+          "name": "6.2 System Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Checks server uptime, memory usage, Redis connection, and MongoDB status."
+          }
+        }
+      ]
+    }
+  ]
+}
