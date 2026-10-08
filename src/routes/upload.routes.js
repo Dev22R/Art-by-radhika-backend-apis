@@ -1,6 +1,6 @@
 const express = require('express');
 const { uploadSingleFile, uploadMultipleFiles, deleteFile } = require('../controllers/upload.controller');
-const { uploadSingle, uploadArray, handleMulterError } = require('../middlewares/upload.middleware');
+const { upload, handleMulterError } = require('../middlewares/upload.middleware');
 const { protect } = require('../modules/user/user.middleware');
 
 const router = express.Router();
@@ -13,15 +13,16 @@ const router = express.Router();
 router.post(
   '/single',
   (req, res, next) => {
-    // Support either 'file' or 'image' field name
-    uploadSingle('file')(req, res, (err) => {
+    upload.fields([
+      { name: 'file', maxCount: 1 },
+      { name: 'image', maxCount: 1 },
+      { name: 'profileImage', maxCount: 1 },
+    ])(req, res, (err) => {
       if (err) return handleMulterError(err, req, res, next);
-      if (!req.file) {
-        // Try 'image' field as fallback
-        return uploadSingle('image')(req, res, (err2) => {
-          if (err2) return handleMulterError(err2, req, res, next);
-          next();
-        });
+      if (req.files) {
+        if (req.files.file && req.files.file[0]) req.file = req.files.file[0];
+        else if (req.files.image && req.files.image[0]) req.file = req.files.image[0];
+        else if (req.files.profileImage && req.files.profileImage[0]) req.file = req.files.profileImage[0];
       }
       next();
     });
@@ -37,13 +38,17 @@ router.post(
 router.post(
   '/multiple',
   (req, res, next) => {
-    uploadArray('files', 10)(req, res, (err) => {
+    upload.fields([
+      { name: 'files', maxCount: 10 },
+      { name: 'images', maxCount: 10 },
+    ])(req, res, (err) => {
       if (err) return handleMulterError(err, req, res, next);
-      if (!req.files || !req.files.length) {
-        return uploadArray('images', 10)(req, res, (err2) => {
-          if (err2) return handleMulterError(err2, req, res, next);
-          next();
-        });
+      if (req.files) {
+        const filesList = [
+          ...(req.files.files || []),
+          ...(req.files.images || []),
+        ];
+        req.files = filesList;
       }
       next();
     });

@@ -219,19 +219,26 @@ async function updateProfile(req, res, next) {
     const { name, email, profileImage } = req.body;
 
     const updateFields = {};
-    if (name) updateFields.name = name.trim();
-    if (email) {
-      const existingEmail = await User.findOne({
-        email: email.toLowerCase().trim(),
-        _id: { $ne: userId },
-      });
-      if (existingEmail) {
-        return res.status(409).json({
-          success: false,
-          message: 'Email address is already taken.',
+    if (name !== undefined) {
+      updateFields.name = name ? name.trim() : null;
+      if (name && name.trim()) updateFields.isProfileCompleted = true;
+    }
+    if (email !== undefined) {
+      if (email) {
+        const existingEmail = await User.findOne({
+          email: email.toLowerCase().trim(),
+          _id: { $ne: userId },
         });
+        if (existingEmail) {
+          return res.status(409).json({
+            success: false,
+            message: 'Email address is already taken.',
+          });
+        }
+        updateFields.email = email.toLowerCase().trim();
+      } else {
+        updateFields.email = null;
       }
-      updateFields.email = email.toLowerCase().trim();
     }
 
     // Handle profile image file upload or string URL
@@ -250,6 +257,13 @@ async function updateProfile(req, res, next) {
       { $set: updateFields },
       { new: true, runValidators: true }
     );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+    }
 
     const userData = updatedUser.toJSON();
     await redisService.set(`user:${userId}`, userData, 600);

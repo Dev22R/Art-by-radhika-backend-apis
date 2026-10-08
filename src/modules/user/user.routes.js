@@ -67,16 +67,26 @@ router.post('/logout', protect, logout);
  */
 router.get('/me', protect, getProfile);
 
-const { uploadSingle, handleMulterError } = require('../../middlewares/upload.middleware');
+const { upload, handleMulterError } = require('../../middlewares/upload.middleware');
 
 const profileImageUpload = (req, res, next) => {
-  uploadSingle('profileImage')(req, res, (err) => {
+  upload.fields([
+    { name: 'profileImage', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+    { name: 'avatar', maxCount: 1 },
+    { name: 'file', maxCount: 1 },
+  ])(req, res, (err) => {
     if (err) return handleMulterError(err, req, res, next);
-    if (!req.file) {
-      return uploadSingle('image')(req, res, (err2) => {
-        if (err2) return handleMulterError(err2, req, res, next);
-        next();
-      });
+    if (req.files) {
+      if (req.files.profileImage && req.files.profileImage[0]) {
+        req.file = req.files.profileImage[0];
+      } else if (req.files.image && req.files.image[0]) {
+        req.file = req.files.image[0];
+      } else if (req.files.avatar && req.files.avatar[0]) {
+        req.file = req.files.avatar[0];
+      } else if (req.files.file && req.files.file[0]) {
+        req.file = req.files.file[0];
+      }
     }
     next();
   });
