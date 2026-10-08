@@ -12,7 +12,7 @@ const limiter = rateLimit({
   },
   message: {
     success: false,
-    message: 'Too many requests from this IP, please try again after 15 minutes.',
+    message: 'Too many requests from IP, please try again after 15 minutes.',
   },
 });
 
