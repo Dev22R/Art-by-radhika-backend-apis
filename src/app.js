@@ -13,6 +13,9 @@ const apiRoutes = require('./routes');
 
 const app = express();
 
+// Trust proxy headers for deployment behind reverse proxies (Vercel, AWS, Render, Nginx)
+app.set('trust proxy', 1);
+
 // Security and utility middlewares
 app.use(helmet());
 app.use(cors({ origin: config.cors.origin, credentials: true }));

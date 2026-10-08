@@ -6,6 +6,10 @@ const limiter = rateLimit({
   max: config.rateLimit.max,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    xForwardedForHeader: false,
+    default: false,
+  },
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes.',
