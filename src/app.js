@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const swaggerUi = require('swagger-ui-express');
 
 const config = require('./config/env');
+const { connectDB } = require('./config/db');
 const swaggerSpec = require('./config/swagger');
 const rateLimiter = require('./middlewares/rateLimiter');
 const errorHandler = require('./middlewares/error.middleware');
@@ -23,6 +24,16 @@ app.use(morgan(config.env === 'development' ? 'dev' : 'combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Ensure Database is connected (essential for Serverless / Vercel execution)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Apply global rate limiting
 app.use('/api', rateLimiter);

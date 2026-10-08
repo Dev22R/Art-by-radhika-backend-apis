@@ -1,33 +1,38 @@
 const mongoose = require('mongoose');
 const config = require('./env');
 
+let cachedPromise = null;
+
 /**
- * Connect to MongoDB database
+ * Connect to MongoDB database (with serverless connection caching)
  */
 async function connectDB() {
+  // If already connected, return immediately
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  // If currently connecting, wait for existing promise
+  if (mongoose.connection.readyState === 2 && cachedPromise) {
+    return cachedPromise;
+  }
+
+  if (!config.db.uri) {
+    console.warn('[MongoDB] MONGO_URI is not set. Skipping DB connection.');
+    return;
+  }
+
   try {
-    if (!config.db.uri) {
-      console.warn('[MongoDB] MONGO_URI is not set. Skipping DB connection.');
-      return;
-    }
-
-    mongoose.connection.on('connected', () => {
-      console.log('[MongoDB] Connected successfully to database');
+    cachedPromise = mongoose.connect(config.db.uri, {
+      serverSelectionTimeoutMS: 5000,
     });
 
-    mongoose.connection.on('error', (err) => {
-      console.error('[MongoDB] Connection error:', err.message);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      console.warn('[MongoDB] Disconnected from database');
-    });
-
-    await mongoose.connect(config.db.uri, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s if MongoDB isn't running locally
-    });
+    await cachedPromise;
+    return mongoose.connection;
   } catch (error) {
-    console.warn(`[MongoDB] Could not establish connection (${error.message}). App will proceed without DB.`);
+    cachedPromise = null;
+    console.error(`[MongoDB] Connection error: ${error.message}`);
+    throw error;
   }
 }
 
