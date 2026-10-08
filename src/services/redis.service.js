@@ -1,9 +1,16 @@
-const { getRedisClient, isRedisReady } = require('../config/redis');
+const { getRedisClient, getUpstashClient } = require('../config/redis');
 const config = require('../config/env');
 
 class RedisService {
   /**
-   * Safe getter for Redis client
+   * Safe getter for Upstash REST client
+   */
+  getUpstash() {
+    return getUpstashClient();
+  }
+
+  /**
+   * Safe getter for standard Redis client
    */
   getClient() {
     return getRedisClient();
@@ -11,10 +18,19 @@ class RedisService {
 
   /**
    * Set a key-value pair in Redis with optional TTL (in seconds)
-   * Automatically serializes objects to JSON strings
    */
   async set(key, value, ttlSeconds = config.redis.defaultTtl) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        if (ttlSeconds && ttlSeconds > 0) {
+          await upstash.set(key, value, { ex: ttlSeconds });
+        } else {
+          await upstash.set(key, value);
+        }
+        return true;
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return false;
 
@@ -34,10 +50,15 @@ class RedisService {
 
   /**
    * Get value by key from Redis
-   * Automatically attempts to parse JSON strings back to objects
    */
   async get(key) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        const data = await upstash.get(key);
+        return data !== undefined ? data : null;
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return null;
 
@@ -60,11 +81,16 @@ class RedisService {
    */
   async del(keys) {
     try {
-      const client = this.getClient();
-      if (!client || !client.isOpen) return 0;
-
       const keysArray = Array.isArray(keys) ? keys : [keys];
       if (keysArray.length === 0) return 0;
+
+      const upstash = this.getUpstash();
+      if (upstash) {
+        return await upstash.del(...keysArray);
+      }
+
+      const client = this.getClient();
+      if (!client || !client.isOpen) return 0;
 
       return await client.del(keysArray);
     } catch (error) {
@@ -78,6 +104,15 @@ class RedisService {
    */
   async delPattern(pattern) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        const keys = await upstash.keys(pattern);
+        if (keys && keys.length > 0) {
+          return await upstash.del(...keys);
+        }
+        return 0;
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return 0;
 
@@ -97,6 +132,12 @@ class RedisService {
    */
   async exists(key) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        const count = await upstash.exists(key);
+        return count > 0;
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return false;
       const count = await client.exists(key);
@@ -112,6 +153,11 @@ class RedisService {
    */
   async expire(key, seconds) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        return await upstash.expire(key, seconds);
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return false;
       return await client.expire(key, seconds);
@@ -126,6 +172,11 @@ class RedisService {
    */
   async ttl(key) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        return await upstash.ttl(key);
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return -2;
       return await client.ttl(key);
@@ -140,6 +191,11 @@ class RedisService {
    */
   async incr(key) {
     try {
+      const upstash = this.getUpstash();
+      if (upstash) {
+        return await upstash.incr(key);
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return null;
       return await client.incr(key);
@@ -154,10 +210,16 @@ class RedisService {
    */
   async publish(channel, message) {
     try {
+      const payload = typeof message === 'object' ? JSON.stringify(message) : String(message);
+
+      const upstash = this.getUpstash();
+      if (upstash) {
+        return await upstash.publish(channel, payload);
+      }
+
       const client = this.getClient();
       if (!client || !client.isOpen) return 0;
 
-      const payload = typeof message === 'object' ? JSON.stringify(message) : String(message);
       return await client.publish(channel, payload);
     } catch (error) {
       console.error(`[RedisService] Error publishing to channel "${channel}":`, error.message);
@@ -167,11 +229,14 @@ class RedisService {
 
   /**
    * Subscribe to a Redis Pub/Sub channel
-   * Note: Subscribing requires a dedicated duplicate connection
    */
   async subscribe(channel, callback) {
     try {
       const baseClient = this.getClient();
+      if (!baseClient || !baseClient.isOpen) {
+        console.warn('[RedisService] Socket client not open for subscription.');
+        return null;
+      }
       const subscriber = baseClient.duplicate();
       await subscriber.connect();
 
