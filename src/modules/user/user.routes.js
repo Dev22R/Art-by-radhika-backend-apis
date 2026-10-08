@@ -67,21 +67,36 @@ router.post('/logout', protect, logout);
  */
 router.get('/me', protect, getProfile);
 
+const { uploadSingle, handleMulterError } = require('../../middlewares/upload.middleware');
+
+const profileImageUpload = (req, res, next) => {
+  uploadSingle('profileImage')(req, res, (err) => {
+    if (err) return handleMulterError(err, req, res, next);
+    if (!req.file) {
+      return uploadSingle('image')(req, res, (err2) => {
+        if (err2) return handleMulterError(err2, req, res, next);
+        next();
+      });
+    }
+    next();
+  });
+};
+
 /**
  * @route   POST /api/auth/complete-profile
- * @desc    Separate API to complete profile (Name, Email, Profile Image)
+ * @desc    Separate API to complete profile (Name, Email, Profile Image file/URL)
  * @access  Private
  */
-router.post('/complete-profile', protect, validateCompleteProfile, completeProfile);
-router.put('/complete-profile', protect, validateCompleteProfile, completeProfile);
+router.post('/complete-profile', protect, profileImageUpload, validateCompleteProfile, completeProfile);
+router.put('/complete-profile', protect, profileImageUpload, validateCompleteProfile, completeProfile);
 
 /**
  * @route   PUT /api/auth/profile
- * @desc    Update profile details
+ * @desc    Update profile details (Name, Email, Profile Image file/URL)
  * @access  Private
  */
-router.put('/profile', protect, updateProfile);
-router.patch('/profile', protect, updateProfile);
+router.put('/profile', protect, profileImageUpload, updateProfile);
+router.patch('/profile', protect, profileImageUpload, updateProfile);
 
 // ==========================================
 // USER ADDRESS ROUTES (Mehndi Booking)

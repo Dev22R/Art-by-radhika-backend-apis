@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
  * Validate incoming Product payload
  */
 function validateProductInput(req, res, next) {
-  const { name, price, category, rating, purchaseCount } = req.body;
+  let { name, price, category, rating, purchaseCount } = req.body;
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     return res.status(400).json({
@@ -14,12 +14,14 @@ function validateProductInput(req, res, next) {
     });
   }
 
-  if (price === undefined || typeof price !== 'number' || price < 0) {
+  const numPrice = Number(price);
+  if (price === undefined || isNaN(numPrice) || numPrice < 0) {
     return res.status(400).json({
       success: false,
       message: 'Product "price" is required and must be a positive number.',
     });
   }
+  req.body.price = numPrice;
 
   if (!category || typeof category !== 'string' || category.trim().length === 0) {
     return res.status(400).json({
@@ -28,18 +30,26 @@ function validateProductInput(req, res, next) {
     });
   }
 
-  if (rating !== undefined && (typeof rating !== 'number' || rating < 0 || rating > 5)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Product "rating" must be a number between 0 and 5.',
-    });
+  if (rating !== undefined) {
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 0 || numRating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product "rating" must be a number between 0 and 5.',
+      });
+    }
+    req.body.rating = numRating;
   }
 
-  if (purchaseCount !== undefined && (typeof purchaseCount !== 'number' || purchaseCount < 0)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Product "purchaseCount" must be a non-negative integer.',
-    });
+  if (purchaseCount !== undefined) {
+    const numPurchase = Number(purchaseCount);
+    if (isNaN(numPurchase) || numPurchase < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product "purchaseCount" must be a non-negative integer.',
+      });
+    }
+    req.body.purchaseCount = numPurchase;
   }
 
   next();

@@ -78,6 +78,22 @@ const config = {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
     max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
   },
+
+  cloudinary: {
+    cloudName: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
+    apiKey: (process.env.CLOUDINARY_API_KEY || '').trim(),
+    apiSecret: (process.env.CLOUDINARY_API_SECRET || '').trim(),
+    isConfigured: Boolean(
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+    ),
+  },
+
+  upload: {
+    maxFileSizeBytes: parseInt(process.env.MAX_FILE_SIZE_MB || '200', 10) * 1024 * 1024, // 200MB default
+    maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB || '200', 10),
+  },
 };
 
 module.exports = config;

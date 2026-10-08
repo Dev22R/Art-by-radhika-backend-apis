@@ -1,5 +1,6 @@
 const Product = require('./product.model');
 const redisService = require('../../services/redis.service');
+const { uploadToCloudinary, uploadMultipleToCloudinary } = require('../../services/cloudinary.service');
 
 /**
  * Helper to invalidate all product-related Redis caches
@@ -24,8 +25,32 @@ async function invalidateProductCaches(productId = null) {
  */
 async function createProduct(req, res, next) {
   try {
-    const { name, price, rating, purchaseCount, category } = req.body;
+    const { name, price, rating, purchaseCount, category, image, images } = req.body;
     const userId = req.user._id || req.user.id;
+
+    let finalImage = image || null;
+    let finalImages = Array.isArray(images) ? images : (images ? [images] : []);
+
+    // Handle single file upload
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, {
+        folder: 'rp-products',
+      });
+      finalImage = uploadResult.secure_url;
+      finalImages.push(uploadResult.secure_url);
+    }
+
+    // Handle multiple file uploads
+    if (req.files && req.files.length) {
+      const uploadResults = await uploadMultipleToCloudinary(req.files, {
+        folder: 'rp-products',
+      });
+      const uploadedUrls = uploadResults.map((r) => r.secure_url);
+      finalImages = [...finalImages, ...uploadedUrls];
+      if (!finalImage && uploadedUrls.length) {
+        finalImage = uploadedUrls[0];
+      }
+    }
 
     const product = new Product({
       name: name.trim(),
@@ -33,6 +58,8 @@ async function createProduct(req, res, next) {
       rating: rating !== undefined ? Number(rating) : 0,
       purchaseCount: purchaseCount !== undefined ? Number(purchaseCount) : 0,
       category: category.trim(),
+      image: finalImage,
+      images: finalImages,
       user: userId,
     });
 

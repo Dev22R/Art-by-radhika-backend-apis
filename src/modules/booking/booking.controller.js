@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Booking = require('./booking.model');
 const UserAddress = require('../user/userAddress.model');
 const redisService = require('../../services/redis.service');
+const { uploadToCloudinary, uploadMultipleToCloudinary } = require('../../services/cloudinary.service');
 
 /**
  * Generate a clean, unique booking reference number
@@ -75,17 +76,59 @@ async function createBooking(req, res, next) {
       longitude: address.longitude,
     };
 
+    // Parse JSON fields if coming from multipart/form-data
+    let parsedDesigns = selectedDesigns;
+    if (typeof selectedDesigns === 'string') {
+      try { parsedDesigns = JSON.parse(selectedDesigns); } catch { parsedDesigns = []; }
+    }
+
+    let parsedPackage = selectedPackage;
+    if (typeof selectedPackage === 'string') {
+      try { parsedPackage = JSON.parse(selectedPackage); } catch { parsedPackage = null; }
+    }
+
+    let parsedSlots = bookingSlots;
+    if (typeof bookingSlots === 'string') {
+      try { parsedSlots = JSON.parse(bookingSlots); } catch { parsedSlots = []; }
+    }
+
+    let finalReferencePhotos = Array.isArray(referencePhotos) ? [...referencePhotos] : (referencePhotos ? [referencePhotos] : []);
+
+    // Upload any attached reference photos to Cloudinary
+    if (req.files && req.files.length) {
+      const uploadResults = await uploadMultipleToCloudinary(req.files, {
+        folder: 'rp-bookings',
+      });
+      const uploadedPhotos = uploadResults.map((r, idx) => ({
+        url: r.secure_url,
+        publicId: r.public_id,
+        originalName: req.files[idx] ? req.files[idx].originalname : 'reference-photo',
+        uploadedAt: new Date(),
+      }));
+      finalReferencePhotos = [...finalReferencePhotos, ...uploadedPhotos];
+    } else if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, {
+        folder: 'rp-bookings',
+      });
+      finalReferencePhotos.push({
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        originalName: req.file.originalname,
+        uploadedAt: new Date(),
+      });
+    }
+
     // 2. Calculate Pricing
     let designAmount = 0;
-    if (Array.isArray(selectedDesigns) && selectedDesigns.length > 0) {
-      designAmount = selectedDesigns.reduce((sum, item) => {
+    if (Array.isArray(parsedDesigns) && parsedDesigns.length > 0) {
+      designAmount = parsedDesigns.reduce((sum, item) => {
         const itemPrice = Number(item.price) || 0;
         const itemQty = Number(item.quantity) || 1;
         return sum + itemPrice * itemQty;
       }, 0);
     }
 
-    const packageAmount = selectedPackage && selectedPackage.price ? Number(selectedPackage.price) : 0;
+    const packageAmount = parsedPackage && parsedPackage.price ? Number(parsedPackage.price) : 0;
     const numericArtistCharge = Number(artistCharge) || 0;
     const numericTravelCharge = Number(travelCharge) || 0;
     const numericDiscount = Number(discount) || 0;
@@ -95,7 +138,7 @@ async function createBooking(req, res, next) {
     const totalAmount = Math.max(0, subtotal - numericDiscount + numericTax);
 
     // 3. Format Booking Slots
-    const formattedSlots = bookingSlots.map((slot) => ({
+    const formattedSlots = (parsedSlots || []).map((slot) => ({
       date: new Date(slot.date),
       startTime: slot.startTime,
       endTime: slot.endTime || null,
@@ -109,9 +152,9 @@ async function createBooking(req, res, next) {
       bookingNumber: generateBookingNumber(),
       userId,
       bookingType: bookingType || 'wedding',
-      selectedDesigns: selectedDesigns || [],
-      selectedPackage: selectedPackage || null,
-      referencePhotos: referencePhotos || [],
+      selectedDesigns: parsedDesigns || [],
+      selectedPackage: parsedPackage || null,
+      referencePhotos: finalReferencePhotos,
       customerRequirements: customerRequirements || null,
       specialInstructions: specialInstructions || notes || null,
       bookingSlots: formattedSlots,

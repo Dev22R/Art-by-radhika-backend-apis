@@ -82,6 +82,11 @@ app.get('/', (req, res) => {
         getById: 'GET /api/products/:id',
         delete: 'DELETE /api/products/:id',
       },
+      upload: {
+        single: 'POST /api/upload/single (file / image form-data, max 200MB)',
+        multiple: 'POST /api/upload/multiple (files / images form-data, max 10 files, 200MB each)',
+        delete: 'DELETE /api/upload/:publicId [Bearer Token]',
+      },
       redisCacheDemo: '/api/redis/cached-data',
       redisKeyDemo: '/api/redis/cache',
       bullmqQueueDemo: '/api/redis/queue-job',

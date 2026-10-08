@@ -30,6 +30,14 @@ const productSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    image: {
+      type: String,
+      default: null,
+    },
+    images: {
+      type: [String],
+      default: [],
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

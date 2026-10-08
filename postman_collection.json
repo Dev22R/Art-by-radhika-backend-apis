@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "a91b8d4e-1284-482a-9cb5-ef59781cf201",
-    "name": "Mehndi Booking & Auth API - Postman Collection",
-    "description": "Production API Collection with Mobile Auth, Complete Profile, Address Management, Full Booking Lifecycle (Pending, Confirmed, Completed, Cancelled, Admin controls), Products with Redis Caching, and BullMQ Background Jobs.",
+    "name": "Art By Radhika - Backend APIs (with Cloudinary & 200MB Uploads)",
+    "description": "Comprehensive Postman API collection for Art By Radhika Backend. Includes Authentication, Profile Completion, Address Management, Cloudinary File & Image Uploads (up to 200MB), Products with Images & Redis Caching, Complete Mehndi Booking Lifecycle with Reference Photos, and Redis/BullMQ Utilities.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -33,6 +33,16 @@
     },
     {
       "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "publicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "uploadedImageUrl",
       "value": "",
       "type": "string"
     }
@@ -106,7 +116,7 @@
                   "    if (json.data && json.data.refreshToken) {",
                   "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
                   "    }",
-                  "    console.log('✅ Logged In! Access & Refresh tokens updated.');",
+                  "    console.log('✅ Logged in! Tokens refreshed.');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -128,11 +138,32 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "login"]
             },
-            "description": "Log in with phone number and password."
+            "description": "Authenticate existing user. Returns accessToken and refreshToken."
           }
         },
         {
-          "name": "1.3 Complete Profile (Separate Endpoint)",
+          "name": "1.3 Complete Profile (Multipart File Upload)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Radhika Sharma", "type": "text" },
+                { "key": "email", "value": "radhika@example.com", "type": "text" },
+                { "key": "profileImage", "type": "file", "description": "Select user profile avatar (up to 200MB)" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/complete-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "complete-profile"]
+            },
+            "description": "Complete user profile by uploading an avatar file directly to Cloudinary via Multer form-data."
+          }
+        },
+        {
+          "name": "1.4 Complete Profile (JSON / URL)",
           "request": {
             "method": "POST",
             "header": [
@@ -140,18 +171,38 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Priya Sharma\",\n  \"email\": \"priya.sharma@example.com\",\n  \"profileImage\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\"\n}"
+              "raw": "{\n  \"name\": \"Radhika Sharma\",\n  \"email\": \"radhika@example.com\",\n  \"profileImage\": \"https://res.cloudinary.com/demo/image/upload/avatar.jpg\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/complete-profile",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "complete-profile"]
             },
-            "description": "Separate endpoint to complete user profile. Sets isProfileCompleted: true and updates Redis cache."
+            "description": "Complete profile using JSON body with image URL."
           }
         },
         {
-          "name": "1.4 Get Profile (Me)",
+          "name": "1.5 Update Profile (Multipart / JSON)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Radhika S. (Updated)", "type": "text" },
+                { "key": "profileImage", "type": "file", "description": "Optional new profile image" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "Partial profile updates with optional avatar file replacement."
+          }
+        },
+        {
+          "name": "1.6 Get Current User Profile",
           "request": {
             "method": "GET",
             "header": [],
@@ -160,30 +211,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "me"]
             },
-            "description": "Fetch current authenticated user profile from Redis cache / MongoDB."
+            "description": "Fetches current profile. Checks Redis cache first."
           }
         },
         {
-          "name": "1.5 Update Profile",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Priya Sharma (Updated)\",\n  \"email\": \"priya.new@example.com\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "profile"]
-            },
-            "description": "Update specific profile fields."
-          }
-        },
-        {
-          "name": "1.6 Refresh Access Token",
+          "name": "1.7 Refresh Token",
           "event": [
             {
               "listen": "test",
@@ -193,7 +225,7 @@
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.accessToken) {",
                   "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
-                  "        console.log('✅ Access token refreshed successfully.');",
+                  "        console.log('✅ Access Token refreshed successfully!');",
                   "    }",
                   "}"
                 ],
@@ -216,11 +248,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "refresh-token"]
             },
-            "description": "Exchange a valid Refresh Token for a new Access Token."
+            "description": "Exchange valid refresh token for a new access token."
           }
         },
         {
-          "name": "1.7 Logout",
+          "name": "1.8 Logout",
           "request": {
             "method": "POST",
             "header": [],
@@ -229,13 +261,13 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "logout"]
             },
-            "description": "Blacklists JWT token in Redis and invalidates sessions."
+            "description": "Logs out user, removes refresh token from Redis, and blacklists access token."
           }
         }
       ]
     },
     {
-      "name": "2. User Address Management",
+      "name": "2. Address Management",
       "item": [
         {
           "name": "2.1 Add Address",
@@ -246,9 +278,9 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    if (json.data && json.data.address && json.data.address._id) {",
-                  "        pm.collectionVariables.set('addressId', json.data.address._id);",
-                  "        console.log('✅ Address saved! addressId:', json.data.address._id);",
+                  "    if (json.data && json.data._id) {",
+                  "        pm.collectionVariables.set('addressId', json.data._id);",
+                  "        console.log('✅ Address saved! addressId:', json.data._id);",
                   "    }",
                   "}"
                 ],
@@ -263,14 +295,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"label\": \"wedding\",\n  \"addressLine\": \"Flat 402, Royal Palms Residency\",\n  \"area\": \"Jubilee Hills\",\n  \"city\": \"Hyderabad\",\n  \"state\": \"Telangana\",\n  \"pincode\": \"500033\",\n  \"landmark\": \"Near Grand Palace Hall\",\n  \"latitude\": 17.4325,\n  \"longitude\": 78.4071,\n  \"isDefault\": true\n}"
+              "raw": "{\n  \"addressType\": \"home\",\n  \"addressLine\": \"Flat 402, Lotus Residency\",\n  \"area\": \"Vijay Nagar\",\n  \"city\": \"Indore\",\n  \"state\": \"Madhya Pradesh\",\n  \"pincode\": \"452010\",\n  \"landmark\": \"Near Brilliant Convention Centre\",\n  \"isDefault\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "addresses"]
             },
-            "description": "Add a new mehndi ceremony venue address."
+            "description": "Add a new address for mehndi booking."
           }
         },
         {
@@ -283,7 +315,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "addresses"]
             },
-            "description": "Get all saved addresses for the logged in user (cached in Redis)."
+            "description": "Get all saved addresses for logged in user (cached in Redis)."
           }
         },
         {
@@ -295,14 +327,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"addressLine\": \"Flat 402, Block B, Royal Palms Residency\",\n  \"landmark\": \"Opposite Metro Gate 2\"\n}"
+              "raw": "{\n  \"addressLine\": \"Flat 402, B-Wing, Lotus Residency\",\n  \"landmark\": \"Opposite Brilliant Convention Centre\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "addresses", "{{addressId}}"]
             },
-            "description": "Update specific address details."
+            "description": "Update specific address."
           }
         },
         {
@@ -315,7 +347,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "addresses", "{{addressId}}", "default"]
             },
-            "description": "Mark selected address as primary default address."
+            "description": "Set an address as the default booking address."
           }
         },
         {
@@ -328,16 +360,16 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "addresses", "{{addressId}}"]
             },
-            "description": "Soft-delete address."
+            "description": "Soft deletes user address."
           }
         }
       ]
     },
     {
-      "name": "3. Mehndi Booking Module",
+      "name": "3. Cloudinary File Uploads (Max 200MB)",
       "item": [
         {
-          "name": "3.1 Create Booking Request (User)",
+          "name": "3.1 Upload Single File / Image",
           "event": [
             {
               "listen": "test",
@@ -345,9 +377,10 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    if (json.data && json.data.booking && json.data.booking._id) {",
-                  "        pm.collectionVariables.set('bookingId', json.data.booking._id);",
-                  "        console.log('✅ Booking created! bookingId:', json.data.booking._id);",
+                  "    if (json.data) {",
+                  "        if (json.data.publicId) pm.collectionVariables.set('publicId', json.data.publicId);",
+                  "        if (json.data.url) pm.collectionVariables.set('uploadedImageUrl', json.data.url);",
+                  "        console.log('✅ Uploaded to Cloudinary! URL:', json.data.url);",
                   "    }",
                   "}"
                 ],
@@ -357,173 +390,62 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"bookingType\": \"wedding\",\n  \"addressId\": \"{{addressId}}\",\n  \"eventName\": \"Ananya & Rohan Sangeet & Mehndi Night\",\n  \"brideName\": \"Ananya Verma\",\n  \"groomName\": \"Rohan Singhania\",\n  \"numberOfPeople\": 6,\n  \"selectedDesigns\": [\n    {\n      \"designId\": \"60d5ec49f1b2c8b1f8e4e1a1\",\n      \"designName\": \"Royal Rajasthani Bridal Full Hand\",\n      \"designImage\": \"https://images.unsplash.com/photo-1596704017254-9b121068fb31\",\n      \"price\": 4500,\n      \"quantity\": 1,\n      \"notes\": \"Dark stain cone preference\"\n    },\n    {\n      \"designId\": \"60d5ec49f1b2c8b1f8e4e1a2\",\n      \"designName\": \"Arabic Floral Guest Mehndi\",\n      \"designImage\": \"https://images.unsplash.com/photo-1560066984-138dadb4c035\",\n      \"price\": 800,\n      \"quantity\": 5,\n      \"notes\": \"Both side palm for bridesmaids\"\n    }\n  ],\n  \"selectedPackage\": {\n    \"packageId\": \"60d5ec49f1b2c8b1f8e4e1a3\",\n    \"packageName\": \"Grand Wedding Mehndi Package\",\n    \"description\": \"Includes Bridal both hands & feet + 5 guests\",\n    \"price\": 8500\n  },\n  \"referencePhotos\": [\n    {\n      \"url\": \"https://images.unsplash.com/photo-1596704017254-9b121068fb31\",\n      \"originalName\": \"bride_design_ref1.jpg\"\n    }\n  ],\n  \"customerRequirements\": \"Natural organic henna only. Require 2 senior artists.\",\n  \"specialInstructions\": \"Ceremony begins at 4:00 PM promptly.\",\n  \"bookingSlots\": [\n    {\n      \"date\": \"2026-11-20T00:00:00.000Z\",\n      \"startTime\": \"15:30\",\n      \"endTime\": \"20:00\",\n      \"artistCount\": 2\n    }\n  ],\n  \"artistCharge\": 500,\n  \"travelCharge\": 300,\n  \"discount\": 500,\n  \"tax\": 250\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings"]
-            },
-            "description": "Create a new mehndi booking request with selected designs, slots, and venue address. Initial status: pending."
-          }
-        },
-        {
-          "name": "3.2 Get My Bookings (Status Filter & Redis Cached)",
-          "request": {
-            "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings?status=pending&page=1&limit=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings"],
-              "query": [
-                { "key": "status", "value": "pending", "description": "Filter by status: pending, confirmed, completed, cancelled, etc." },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "description": "Select file/image to upload (up to 200MB)" },
+                { "key": "folder", "value": "rp-gallery", "type": "text", "description": "Cloudinary target folder" }
               ]
             },
-            "description": "Get all bookings created by current user. Redis cached for fast retrieval."
-          }
-        },
-        {
-          "name": "3.3 Get Booking By ID",
-          "request": {
-            "method": "GET",
-            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "raw": "{{baseUrl}}/api/upload/single",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "{{bookingId}}"]
+              "path": ["api", "upload", "single"]
             },
-            "description": "Get complete booking details by booking ID."
+            "description": "Upload a single file or image (up to 200MB) directly to Cloudinary. Accepts form-data field 'file' or 'image'."
           }
         },
         {
-          "name": "3.4 Cancel Booking (User)",
+          "name": "3.2 Upload Multiple Files (Up to 10)",
           "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "method": "POST",
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Wedding event date shifted due to venue unavailability.\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "{{bookingId}}", "cancel"]
-            },
-            "description": "Cancel booking by customer (allowed on pending/confirmed bookings)."
-          }
-        },
-        {
-          "name": "3.5 [Admin] Get All Bookings (Search & Filters)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings/admin/all?status=pending,confirmed&search=Ananya&page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "all"],
-              "query": [
-                { "key": "status", "value": "pending,confirmed" },
-                { "key": "search", "value": "Ananya" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "files", "type": "file", "description": "Select multiple files (up to 10, 200MB each)" },
+                { "key": "folder", "value": "rp-designs", "type": "text" }
               ]
             },
-            "description": "Admin endpoint to list all bookings across users with filtering by status, search, and pagination."
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/multiple",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "multiple"]
+            },
+            "description": "Upload up to 10 files concurrently to Cloudinary. Accepts form-data field 'files' or 'images'."
           }
         },
         {
-          "name": "3.6 [Admin] Update Booking Status (Pending -> Confirmed / Completed)",
+          "name": "3.3 Delete Asset from Cloudinary",
           "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"confirmed\",\n  \"adminNotes\": \"Booking verified and slots locked for client.\"\n}"
-            },
+            "method": "DELETE",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/status",
+              "raw": "{{baseUrl}}/api/upload/{{publicId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "status"]
+              "path": ["api", "upload", "{{publicId}}"]
             },
-            "description": "Admin endpoint to update booking status. Allowed: pending, awaiting_payment, confirmed, in_progress, completed, cancelled, rejected, rescheduled."
-          }
-        },
-        {
-          "name": "3.7 [Admin] Assign Artists to Booking",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"slotIndex\": 0,\n  \"artistIds\": [\n    \"60d5ec49f1b2c8b1f8e4e1b1\",\n    \"60d5ec49f1b2c8b1f8e4e1b2\"\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/assign-artists",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "assign-artists"]
-            },
-            "description": "Assign mehndi artists to booking slots and update artist assignment status."
-          }
-        },
-        {
-          "name": "3.8 [Admin] Update Payment Status",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"paymentStatus\": \"paid\",\n  \"paidAmount\": 13050\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/payment",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "payment"]
-            },
-            "description": "Update payment status (pending, partial, paid, refunded) and calculate remaining balance."
-          }
-        },
-        {
-          "name": "3.9 [Admin] Update Admin Notes",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"adminNotes\": \"Client requested organic eucalyptus henna paste. Artists briefed.\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/admin-notes",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "admin-notes"]
-            },
-            "description": "Update internal administration notes for the booking."
+            "description": "Delete uploaded asset from Cloudinary using publicId."
           }
         }
       ]
     },
     {
-      "name": "4. Products & Designs (Redis Caching)",
+      "name": "4. Products (with Images & Caching)",
       "item": [
         {
-          "name": "4.1 Create Product",
+          "name": "4.1 Create Product (Multipart with Image Upload)",
           "event": [
             {
               "listen": "test",
@@ -543,43 +465,66 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Bridal Arabic Full Hand Mehndi Design\",\n  \"description\": \"Intricate Arabic floral and geometric bridal mehndi package for both hands.\",\n  \"price\": 3500,\n  \"category\": \"Bridal\",\n  \"rating\": 4.9,\n  \"purchaseCount\": 45\n}"
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Bridal Organic Mehndi Cone (Pack of 12)", "type": "text" },
+                { "key": "price", "value": "499", "type": "text" },
+                { "key": "category", "value": "Organic Cones", "type": "text" },
+                { "key": "rating", "value": "4.9", "type": "text" },
+                { "key": "purchaseCount", "value": "120", "type": "text" },
+                { "key": "image", "type": "file", "description": "Select product image (up to 200MB)" }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/products",
               "host": ["{{baseUrl}}"],
               "path": ["api", "products"]
             },
-            "description": "Create a new product / design service."
+            "description": "Create a product with automatic image upload to Cloudinary."
           }
         },
         {
-          "name": "4.2 Get All Products (Cached in Redis)",
+          "name": "4.2 Create Product (JSON with Image URL)",
           "request": {
-            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Natural Henna Powder 500g\",\n  \"price\": 350,\n  \"category\": \"Raw Henna\",\n  \"rating\": 4.8,\n  \"purchaseCount\": 85,\n  \"image\": \"https://res.cloudinary.com/demo/image/upload/henna-powder.jpg\",\n  \"images\": [\n    \"https://res.cloudinary.com/demo/image/upload/henna-powder-1.jpg\",\n    \"https://res.cloudinary.com/demo/image/upload/henna-powder-2.jpg\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Create product using JSON payload."
+          }
+        },
+        {
+          "name": "4.3 Get All Products (Cached with Filters)",
+          "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/products?page=1&limit=10",
+              "raw": "{{baseUrl}}/api/products?category=Organic Cones&minPrice=100&maxPrice=1000",
               "host": ["{{baseUrl}}"],
               "path": ["api", "products"],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                { "key": "category", "value": "Organic Cones" },
+                { "key": "minPrice", "value": "100" },
+                { "key": "maxPrice", "value": "1000" }
               ]
             },
-            "description": "Fetch paginated products list. Uses Redis caching for sub-millisecond responses."
+            "description": "Fetch products with Redis caching and query filtering."
           }
         },
         {
-          "name": "4.3 Get Product by ID",
+          "name": "4.4 Get Product by ID",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
@@ -587,11 +532,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "products", "{{productId}}"]
             },
-            "description": "Fetch a single product by its ObjectId."
+            "description": "Fetch single product by ID (cached in Redis)."
           }
         },
         {
-          "name": "4.4 Delete Product (Clears Redis Cache)",
+          "name": "4.5 Delete Product",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -600,16 +545,277 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "products", "{{productId}}"]
             },
-            "description": "Delete product and automatically evict related Redis cache keys."
+            "description": "Delete product and invalidate Redis cache (Owner only)."
           }
         }
       ]
     },
     {
-      "name": "5. Redis Demos & BullMQ Queues",
+      "name": "5. Mehndi Bookings (Full Lifecycle & Photos)",
       "item": [
         {
-          "name": "5.1 Get Cached Data Demo",
+          "name": "5.1 Create Booking (Multipart with Reference Photos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data._id) {",
+                  "        pm.collectionVariables.set('bookingId', json.data._id);",
+                  "        console.log('✅ Booking Created! Booking Number:', json.data.bookingNumber);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "addressId", "value": "{{addressId}}", "type": "text" },
+                { "key": "bookingType", "value": "wedding", "type": "text" },
+                { "key": "eventName", "value": "Radhika Wedding Ceremony", "type": "text" },
+                { "key": "brideName", "value": "Radhika", "type": "text" },
+                { "key": "groomName", "value": "Devendra", "type": "text" },
+                { "key": "numberOfPeople", "value": "5", "type": "text" },
+                { "key": "bookingSlots", "value": "[{\"date\":\"2026-11-15T09:00:00.000Z\",\"startTime\":\"10:00 AM\",\"endTime\":\"04:00 PM\",\"artistCount\":2}]", "type": "text" },
+                { "key": "selectedDesigns", "value": "[{\"designId\":\"661a3b4f5c9e2b001f8d4e11\",\"designName\":\"Royal Rajasthani Bridal Mehndi\",\"price\":3500,\"quantity\":1}]", "type": "text" },
+                { "key": "specialInstructions", "value": "Dark stain cone preference and organic ingredients only.", "type": "text" },
+                { "key": "referencePhotos", "type": "file", "description": "Select reference mehndi photo to upload to Cloudinary" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Create booking with multipart form-data, auto-uploading reference photos to Cloudinary."
+          }
+        },
+        {
+          "name": "5.2 Create Booking (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressId\": \"{{addressId}}\",\n  \"bookingType\": \"wedding\",\n  \"eventName\": \"Radhika Sangeet & Mehndi\",\n  \"brideName\": \"Radhika\",\n  \"groomName\": \"Devendra\",\n  \"numberOfPeople\": 4,\n  \"bookingSlots\": [\n    {\n      \"date\": \"2026-11-15T10:00:00.000Z\",\n      \"startTime\": \"10:00 AM\",\n      \"endTime\": \"02:00 PM\",\n      \"artistCount\": 2\n    }\n  ],\n  \"selectedDesigns\": [\n    {\n      \"designId\": \"661a3b4f5c9e2b001f8d4e11\",\n      \"designName\":\"Royal Bridal Mehndi\",\n      \"price\": 5000,\n      \"quantity\": 1\n    }\n  ],\n  \"referencePhotos\": [\n    {\n      \"url\": \"https://res.cloudinary.com/demo/image/upload/mehndi-ref1.jpg\",\n      \"originalName\": \"pinterest-design.jpg\"\n    }\n  ],\n  \"specialInstructions\": \"Please bring dark stain cones.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Create booking using JSON body with existing photo URLs."
+          }
+        },
+        {
+          "name": "5.3 Get My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings?status=pending&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"],
+              "query": [
+                { "key": "status", "value": "pending" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch all bookings created by the logged in user."
+          }
+        },
+        {
+          "name": "5.4 Get Booking By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}"]
+            },
+            "description": "Get detailed booking information."
+          }
+        },
+        {
+          "name": "5.5 Cancel Booking (User)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Event date postponed by family.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "cancel"]
+            },
+            "description": "User cancels their pending booking."
+          }
+        },
+        {
+          "name": "5.6 Admin: Get All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/all?status=pending&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "all"],
+              "query": [
+                { "key": "status", "value": "pending" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Admin endpoint to view all client bookings across the system."
+          }
+        },
+        {
+          "name": "5.7 Admin: Update Booking Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"adminNotes\": \"Deposit received and date locked in calendar.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "status"]
+            },
+            "description": "Admin updates booking status (e.g. pending -> confirmed -> completed)."
+          }
+        },
+        {
+          "name": "5.8 Admin: Assign Artists",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotIndex\": 0,\n  \"artistIds\": [\n    \"661a3b4f5c9e2b001f8d4e99\",\n    \"661a3b4f5c9e2b001f8d4e98\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/assign-artists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "assign-artists"]
+            },
+            "description": "Assign specific artists to booking slot."
+          }
+        },
+        {
+          "name": "5.9 Admin: Update Payment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentStatus\": \"paid\",\n  \"paidAmount\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "payment"]
+            },
+            "description": "Admin records payment receipt and updates status to partial or paid."
+          }
+        },
+        {
+          "name": "5.10 Admin: Update Notes",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminNotes\": \"Bride requested delicate figure work on both palms.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/admin-notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "admin", "{{bookingId}}", "admin-notes"]
+            },
+            "description": "Update internal staff notes for the booking."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Redis Caching & Queue Tasks",
+      "item": [
+        {
+          "name": "6.1 Set Cache Key",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"demo:banner\",\n  \"value\": { \"title\": \"Wedding Season 50% Off\", \"active\": true },\n  \"ttl\": 120\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/cache",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "cache"]
+            },
+            "description": "Store a key-value pair in Redis with optional TTL in seconds."
+          }
+        },
+        {
+          "name": "6.2 Get Cache Key",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/cache/demo:banner",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "cache", "demo:banner"]
+            },
+            "description": "Retrieve cached data by key."
+          }
+        },
+        {
+          "name": "6.3 Delete Cache Key",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/cache/demo:banner",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "cache", "demo:banner"]
+            },
+            "description": "Delete a key from Redis."
+          }
+        },
+        {
+          "name": "6.4 Route Response Caching Demo",
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
@@ -619,11 +825,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "redis", "cached-data"]
             },
-            "description": "Demonstrates Redis caching speed vs simulated slow DB lookup."
+            "description": "First call computes in ~1.5s (CACHE MISS). Second call returns in ~3ms (CACHE HIT)."
           }
         },
         {
-          "name": "5.2 Set Key-Value in Redis",
+          "name": "6.5 BullMQ Distributed Queue Task Trigger",
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
@@ -632,57 +838,43 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"key\": \"promo_code:MEHNDI2026\",\n  \"value\": { \"discount\": 20, \"type\": \"percentage\" },\n  \"ttl\": 600\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/redis/cache",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "cache"]
-            },
-            "description": "Set a raw key-value pair in Redis with custom TTL in seconds."
-          }
-        },
-        {
-          "name": "5.3 Dispatch BullMQ Background Job",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"taskName\": \"send_booking_notification\",\n  \"payload\": {\n    \"phone\": \"9876543210\",\n    \"bookingId\": \"BK-261007-8492\",\n    \"service\": \"Bridal Mehndi\"\n  }\n}"
+              "raw": "{\n  \"taskName\": \"SEND_BOOKING_CONFIRMATION_SMS\",\n  \"payload\": {\n    \"phone\": \"9876543210\",\n    \"message\": \"Your Mehndi booking BK-261008-1234 is confirmed!\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/redis/queue-job",
               "host": ["{{baseUrl}}"],
               "path": ["api", "redis", "queue-job"]
             },
-            "description": "Enqueue an asynchronous background job handled by BullMQ worker."
+            "description": "Pushes background worker job to BullMQ queue."
+          }
+        },
+        {
+          "name": "6.6 Redis Pub/Sub Publish",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"notifications\",\n  \"message\": {\n    \"event\": \"FLASH_SALE\",\n    \"discount\": \"20% OFF\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/redis/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "redis", "publish"]
+            },
+            "description": "Publishes real-time event to Redis Pub/Sub and broadcasts to connected Socket.IO clients."
           }
         }
       ]
     },
     {
-      "name": "6. System & Health Check",
+      "name": "7. Health Check",
       "item": [
         {
-          "name": "6.1 Root API Info",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
-            },
-            "description": "Returns all registered API endpoints, status, and documentation links."
-          }
-        },
-        {
-          "name": "6.2 System Health Check",
+          "name": "7.1 Health Check API",
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
@@ -692,7 +884,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "health"]
             },
-            "description": "Checks server uptime, memory usage, Redis connection, and MongoDB status."
+            "description": "Checks server health, MongoDB connection, Redis status, and uptime."
           }
         }
       ]

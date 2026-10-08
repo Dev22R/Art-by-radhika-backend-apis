@@ -26,6 +26,17 @@ const validPaymentStatuses = [
  * Validate Create Booking Payload
  */
 function validateCreateBooking(req, res, next) {
+  // Parse JSON strings if submitted via multipart/form-data
+  if (typeof req.body.bookingSlots === 'string') {
+    try { req.body.bookingSlots = JSON.parse(req.body.bookingSlots); } catch (e) {}
+  }
+  if (typeof req.body.selectedDesigns === 'string') {
+    try { req.body.selectedDesigns = JSON.parse(req.body.selectedDesigns); } catch (e) {}
+  }
+  if (typeof req.body.selectedPackage === 'string') {
+    try { req.body.selectedPackage = JSON.parse(req.body.selectedPackage); } catch (e) {}
+  }
+
   const { addressId, bookingSlots, bookingType } = req.body;
 
   if (!addressId) {

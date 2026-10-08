@@ -63,12 +63,39 @@ router.patch('/admin/:id/admin-notes', protect, authorize('admin'), updateAdminN
 // CUSTOMER / USER BOOKING ROUTES
 // ==========================================
 
+const { upload, handleMulterError } = require('../../middlewares/upload.middleware');
+
+const bookingPhotoUpload = (req, res, next) => {
+  upload.fields([
+    { name: 'referencePhotos', maxCount: 10 },
+    { name: 'photos', maxCount: 10 },
+    { name: 'images', maxCount: 10 },
+    { name: 'photo', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+    { name: 'file', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return handleMulterError(err, req, res, next);
+    if (req.files) {
+      const allFiles = [
+        ...(req.files.referencePhotos || []),
+        ...(req.files.photos || []),
+        ...(req.files.images || []),
+        ...(req.files.photo || []),
+        ...(req.files.image || []),
+        ...(req.files.file || []),
+      ];
+      req.files = allFiles;
+    }
+    next();
+  });
+};
+
 /**
  * @route   POST /api/bookings
- * @desc    Create a new mehndi booking request
+ * @desc    Create a new mehndi booking request (supports optional reference photos upload up to 200MB)
  * @access  Private (Authenticated User)
  */
-router.post('/', protect, validateCreateBooking, createBooking);
+router.post('/', protect, bookingPhotoUpload, validateCreateBooking, createBooking);
 
 /**
  * @route   GET /api/bookings

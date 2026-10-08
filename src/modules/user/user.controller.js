@@ -3,6 +3,7 @@ const User = require('./user.model');
 const UserAddress = require('./userAddress.model');
 const config = require('../../config/env');
 const redisService = require('../../services/redis.service');
+const { uploadToCloudinary } = require('../../services/cloudinary.service');
 
 /**
  * Generate Access and Refresh JWT Tokens
@@ -161,13 +162,23 @@ async function completeProfile(req, res, next) {
       }
     }
 
+    // Handle uploaded file if present
+    let finalProfileImage = profileImage;
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, {
+        folder: 'rp-profiles',
+        transformation: [{ width: 500, height: 500, crop: 'limit' }],
+      });
+      finalProfileImage = uploadResult.secure_url;
+    }
+
     // Update user profile
     const updateData = {
       name,
       isProfileCompleted: true,
     };
     if (email !== undefined) updateData.email = email ? email.toLowerCase() : null;
-    if (profileImage !== undefined) updateData.profileImage = profileImage;
+    if (finalProfileImage !== undefined) updateData.profileImage = finalProfileImage;
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -222,7 +233,17 @@ async function updateProfile(req, res, next) {
       }
       updateFields.email = email.toLowerCase().trim();
     }
-    if (profileImage !== undefined) updateFields.profileImage = profileImage;
+
+    // Handle profile image file upload or string URL
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, {
+        folder: 'rp-profiles',
+        transformation: [{ width: 500, height: 500, crop: 'limit' }],
+      });
+      updateFields.profileImage = uploadResult.secure_url;
+    } else if (profileImage !== undefined) {
+      updateFields.profileImage = profileImage;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
