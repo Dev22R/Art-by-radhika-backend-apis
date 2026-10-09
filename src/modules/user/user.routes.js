@@ -2,6 +2,8 @@ const express = require('express');
 const {
   signup,
   login,
+  adminLogin,
+  changePassword,
   completeProfile,
   updateProfile,
   getProfile,
@@ -15,8 +17,11 @@ const {
 } = require('./user.controller');
 const {
   protect,
+  authorize,
   validateSignup,
   validateLogin,
+  validateAdminLogin,
+  validateChangePassword,
   validateCompleteProfile,
   validateAddress,
 } = require('./user.middleware');
@@ -24,7 +29,7 @@ const {
 const router = express.Router();
 
 // ==========================================
-// AUTHENTICATION ROUTES (Phone & Password)
+// AUTHENTICATION ROUTES
 // ==========================================
 
 /**
@@ -41,6 +46,33 @@ router.post('/register', validateSignup, signup);
  * @access  Public
  */
 router.post('/login', validateLogin, login);
+
+/**
+ * @route   POST /api/auth/admin/login
+ * @desc    Admin Log in with email or phone & password
+ * @access  Public
+ */
+router.post('/admin/login', validateAdminLogin, adminLogin);
+
+/**
+ * @route   PUT /api/auth/admin/change-password
+ * @desc    Admin Change Password (single newPassword field)
+ * @access  Private (Admin)
+ */
+router.put(
+  '/admin/change-password',
+  protect,
+  authorize('admin'),
+  validateChangePassword,
+  changePassword
+);
+
+/**
+ * @route   PUT /api/auth/change-password
+ * @desc    Change Password for current authenticated user
+ * @access  Private
+ */
+router.put('/change-password', protect, validateChangePassword, changePassword);
 
 /**
  * @route   POST /api/auth/refresh-token

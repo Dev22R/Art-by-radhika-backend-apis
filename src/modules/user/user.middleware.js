@@ -235,10 +235,64 @@ function authorize(...roles) {
   };
 }
 
+/**
+ * Middleware to validate Admin Login payload (supports email or phone + password)
+ */
+function validateAdminLogin(req, res, next) {
+  const { email, phone, identifier, password } = req.body;
+  const loginIdentifier = email || phone || identifier;
+
+  if (!loginIdentifier || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Admin email/phone and password are required.',
+    });
+  }
+
+  if (typeof password !== 'string' || password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 6 characters long.',
+    });
+  }
+
+  if (email) req.body.email = email.trim().toLowerCase();
+  if (phone) req.body.phone = phone.trim().replace(/[\s-]/g, '');
+  if (identifier) req.body.identifier = identifier.trim();
+
+  next();
+}
+
+/**
+ * Middleware to validate Change Password payload (single newPassword field)
+ */
+function validateChangePassword(req, res, next) {
+  const { newPassword } = req.body;
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'newPassword is required.',
+    });
+  }
+
+  if (newPassword.trim().length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'newPassword must be at least 6 characters long.',
+    });
+  }
+
+  req.body.newPassword = newPassword.trim();
+  next();
+}
+
 module.exports = {
   isValidPhone,
   validateSignup,
   validateLogin,
+  validateAdminLogin,
+  validateChangePassword,
   validateCompleteProfile,
   validateAddress,
   protect,

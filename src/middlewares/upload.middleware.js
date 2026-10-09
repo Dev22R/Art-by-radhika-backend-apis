@@ -73,6 +73,13 @@ function uploadFields(fields) {
 }
 
 /**
+ * Any Fields Upload Middleware (Accepts any file field name dynamically)
+ */
+function uploadAny() {
+  return upload.any();
+}
+
+/**
  * Multer Error Handling Middleware
  */
 function handleMulterError(err, req, res, next) {
@@ -113,5 +120,6 @@ module.exports = {
   uploadSingle,
   uploadArray,
   uploadFields,
+  uploadAny,
   handleMulterError,
 };

@@ -141,6 +141,116 @@ async function login(req, res, next) {
 }
 
 /**
+ * Admin Login API (Supports email or phone + password)
+ */
+async function adminLogin(req, res, next) {
+  try {
+    const { email, phone, identifier, password } = req.body;
+    const loginIdentifier = email || phone || identifier;
+
+    // Build query to find admin by email or phone
+    const query = {
+      $or: [
+        { email: loginIdentifier.toLowerCase() },
+        { phone: loginIdentifier },
+      ],
+    };
+
+    // 1. Find user including password
+    const user = await User.findOne(query).select('+password');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials.',
+      });
+    }
+
+    // 2. Strict Admin Role Check
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. This portal is restricted to administrators only.',
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin account has been deactivated. Please contact technical support.',
+      });
+    }
+
+    // 3. Verify password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials.',
+      });
+    }
+
+    // 4. Update last login timestamp
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    // 5. Generate Admin Tokens
+    const tokens = generateTokens(user);
+
+    // 6. Store Refresh Token in Redis (7 days TTL)
+    await redisService.set(`rt:${user._id}`, tokens.refreshToken, 7 * 24 * 3600);
+
+    // 7. Cache user in Redis
+    const userData = user.toJSON();
+    await redisService.set(`user:${user._id}`, userData, 600);
+
+    res.json({
+      success: true,
+      message: 'Admin login successful.',
+      data: {
+        user: userData,
+        role: user.role,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Change Password API (Single newPassword field)
+ */
+async function changePassword(req, res, next) {
+  try {
+    const userId = req.user._id || req.user.id;
+    const { newPassword } = req.body;
+
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found.',
+      });
+    }
+
+    // Update password (pre-save hook will hash it with bcrypt)
+    user.password = newPassword;
+    await user.save();
+
+    // Invalidate user cache in Redis
+    await redisService.del(`user:${userId}`);
+
+    res.json({
+      success: true,
+      message: 'Password has been changed successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * Complete Profile API (Dedicated separate endpoint to complete name, email, profile image)
  */
 async function completeProfile(req, res, next) {
@@ -614,6 +724,8 @@ async function setDefaultAddress(req, res, next) {
 module.exports = {
   signup,
   login,
+  adminLogin,
+  changePassword,
   completeProfile,
   updateProfile,
   getProfile,

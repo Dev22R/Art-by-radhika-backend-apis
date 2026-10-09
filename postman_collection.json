@@ -45,6 +45,16 @@
       "key": "uploadedImageUrl",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "reelId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "commentId",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -84,10 +94,15 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -95,8 +110,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/signup",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "signup"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "signup"
+              ]
             },
             "description": "Sign up with 10-digit mobile number and password only. Sets isProfileCompleted to false."
           }
@@ -124,10 +145,15 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -135,10 +161,145 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
             },
             "description": "Authenticate existing user. Returns accessToken and refreshToken."
+          }
+        },
+        {
+          "name": "1.3 Admin Login (Email & Password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "    }",
+                  "    if (json.data && json.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "    }",
+                  "    console.log('👑 Logged in as ADMIN! Admin token saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@artbyradhika.com\",\n  \"password\": \"ABR@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Admin Login using official email (admin@artbyradhika.com) and password. Returns Admin Bearer Token."
+          }
+        },
+        {
+          "name": "1.4 Admin Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"ABR@NewPassword2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "change-password"
+              ]
+            },
+            "description": "Admin changes password using single 'newPassword' field. Requires Admin Bearer token."
+          }
+        },
+        {
+          "name": "1.5 User Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"NewSecretPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Authenticated user changes their password with 'newPassword' field."
           }
         },
         {
@@ -149,15 +310,33 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "name", "value": "Radhika Sharma", "type": "text" },
-                { "key": "email", "value": "radhika@example.com", "type": "text" },
-                { "key": "profileImage", "type": "file", "description": "Select user profile avatar (up to 200MB)" }
+                {
+                  "key": "name",
+                  "value": "Radhika Sharma",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "radhika@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "description": "Select user profile avatar (up to 200MB)"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/complete-profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "complete-profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "complete-profile"
+              ]
             },
             "description": "Complete user profile by uploading an avatar file directly to Cloudinary via Multer form-data."
           }
@@ -167,7 +346,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -175,8 +357,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/complete-profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "complete-profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "complete-profile"
+              ]
             },
             "description": "Complete profile using JSON body with image URL."
           }
@@ -189,14 +377,28 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "name", "value": "Radhika S. (Updated)", "type": "text" },
-                { "key": "profileImage", "type": "file", "description": "Optional new profile image" }
+                {
+                  "key": "name",
+                  "value": "Radhika S. (Updated)",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "description": "Optional new profile image"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
             },
             "description": "Partial profile updates with optional avatar file replacement."
           }
@@ -208,8 +410,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
             },
             "description": "Fetches current profile. Checks Redis cache first."
           }
@@ -234,10 +442,15 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -245,8 +458,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/refresh-token",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "refresh-token"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
             },
             "description": "Exchange valid refresh token for a new access token."
           }
@@ -258,8 +477,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
             },
             "description": "Logs out user, removes refresh token from Redis, and blacklists access token."
           }
@@ -291,7 +516,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -299,8 +527,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "addresses"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "addresses"
+              ]
             },
             "description": "Add a new address for mehndi booking."
           }
@@ -312,8 +546,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "addresses"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "addresses"
+              ]
             },
             "description": "Get all saved addresses for logged in user (cached in Redis)."
           }
@@ -323,7 +563,10 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -331,8 +574,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "addresses", "{{addressId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "addresses",
+                "{{addressId}}"
+              ]
             },
             "description": "Update specific address."
           }
@@ -344,8 +594,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}/default",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "addresses", "{{addressId}}", "default"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "addresses",
+                "{{addressId}}",
+                "default"
+              ]
             },
             "description": "Set an address as the default booking address."
           }
@@ -357,8 +615,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/addresses/{{addressId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "addresses", "{{addressId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "addresses",
+                "{{addressId}}"
+              ]
             },
             "description": "Soft deletes user address."
           }
@@ -394,14 +659,29 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "description": "Select file/image to upload (up to 200MB)" },
-                { "key": "folder", "value": "rp-gallery", "type": "text", "description": "Cloudinary target folder" }
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "Select file/image to upload (up to 200MB)"
+                },
+                {
+                  "key": "folder",
+                  "value": "rp-gallery",
+                  "type": "text",
+                  "description": "Cloudinary target folder"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/upload/single",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "upload", "single"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "upload",
+                "single"
+              ]
             },
             "description": "Upload a single file or image (up to 200MB) directly to Cloudinary. Accepts form-data field 'file' or 'image'."
           }
@@ -414,14 +694,28 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "files", "type": "file", "description": "Select multiple files (up to 10, 200MB each)" },
-                { "key": "folder", "value": "rp-designs", "type": "text" }
+                {
+                  "key": "files",
+                  "type": "file",
+                  "description": "Select multiple files (up to 10, 200MB each)"
+                },
+                {
+                  "key": "folder",
+                  "value": "rp-designs",
+                  "type": "text"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/upload/multiple",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "upload", "multiple"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "upload",
+                "multiple"
+              ]
             },
             "description": "Upload up to 10 files concurrently to Cloudinary. Accepts form-data field 'files' or 'images'."
           }
@@ -433,8 +727,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/upload/{{publicId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "upload", "{{publicId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "upload",
+                "{{publicId}}"
+              ]
             },
             "description": "Delete uploaded asset from Cloudinary using publicId."
           }
@@ -469,18 +769,47 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "name", "value": "Bridal Organic Mehndi Cone (Pack of 12)", "type": "text" },
-                { "key": "price", "value": "499", "type": "text" },
-                { "key": "category", "value": "Organic Cones", "type": "text" },
-                { "key": "rating", "value": "4.9", "type": "text" },
-                { "key": "purchaseCount", "value": "120", "type": "text" },
-                { "key": "image", "type": "file", "description": "Select product image (up to 200MB)" }
+                {
+                  "key": "name",
+                  "value": "Bridal Organic Mehndi Cone (Pack of 12)",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "499",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Organic Cones",
+                  "type": "text"
+                },
+                {
+                  "key": "rating",
+                  "value": "4.9",
+                  "type": "text"
+                },
+                {
+                  "key": "purchaseCount",
+                  "value": "120",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "description": "Select product image (up to 200MB)"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
             },
             "description": "Create a product with automatic image upload to Cloudinary."
           }
@@ -490,7 +819,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -498,8 +830,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
             },
             "description": "Create product using JSON payload."
           }
@@ -511,12 +848,26 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/products?category=Organic Cones&minPrice=100&maxPrice=1000",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "products"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
               "query": [
-                { "key": "category", "value": "Organic Cones" },
-                { "key": "minPrice", "value": "100" },
-                { "key": "maxPrice", "value": "1000" }
+                {
+                  "key": "category",
+                  "value": "Organic Cones"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "100"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "1000"
+                }
               ]
             },
             "description": "Fetch products with Redis caching and query filtering."
@@ -529,8 +880,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "Fetch single product by ID (cached in Redis)."
           }
@@ -542,8 +899,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "Delete product and invalidate Redis cache (Owner only)."
           }
@@ -578,22 +941,67 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "addressId", "value": "{{addressId}}", "type": "text" },
-                { "key": "bookingType", "value": "wedding", "type": "text" },
-                { "key": "eventName", "value": "Radhika Wedding Ceremony", "type": "text" },
-                { "key": "brideName", "value": "Radhika", "type": "text" },
-                { "key": "groomName", "value": "Devendra", "type": "text" },
-                { "key": "numberOfPeople", "value": "5", "type": "text" },
-                { "key": "bookingSlots", "value": "[{\"date\":\"2026-11-15T09:00:00.000Z\",\"startTime\":\"10:00 AM\",\"endTime\":\"04:00 PM\",\"artistCount\":2}]", "type": "text" },
-                { "key": "selectedDesigns", "value": "[{\"designId\":\"661a3b4f5c9e2b001f8d4e11\",\"designName\":\"Royal Rajasthani Bridal Mehndi\",\"price\":3500,\"quantity\":1}]", "type": "text" },
-                { "key": "specialInstructions", "value": "Dark stain cone preference and organic ingredients only.", "type": "text" },
-                { "key": "referencePhotos", "type": "file", "description": "Select reference mehndi photo to upload to Cloudinary" }
+                {
+                  "key": "addressId",
+                  "value": "{{addressId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "bookingType",
+                  "value": "wedding",
+                  "type": "text"
+                },
+                {
+                  "key": "eventName",
+                  "value": "Radhika Wedding Ceremony",
+                  "type": "text"
+                },
+                {
+                  "key": "brideName",
+                  "value": "Radhika",
+                  "type": "text"
+                },
+                {
+                  "key": "groomName",
+                  "value": "Devendra",
+                  "type": "text"
+                },
+                {
+                  "key": "numberOfPeople",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "bookingSlots",
+                  "value": "[{\"date\":\"2026-11-15T09:00:00.000Z\",\"startTime\":\"10:00 AM\",\"endTime\":\"04:00 PM\",\"artistCount\":2}]",
+                  "type": "text"
+                },
+                {
+                  "key": "selectedDesigns",
+                  "value": "[{\"designId\":\"661a3b4f5c9e2b001f8d4e11\",\"designName\":\"Royal Rajasthani Bridal Mehndi\",\"price\":3500,\"quantity\":1}]",
+                  "type": "text"
+                },
+                {
+                  "key": "specialInstructions",
+                  "value": "Dark stain cone preference and organic ingredients only.",
+                  "type": "text"
+                },
+                {
+                  "key": "referencePhotos",
+                  "type": "file",
+                  "description": "Select reference mehndi photo to upload to Cloudinary"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
             },
             "description": "Create booking with multipart form-data, auto-uploading reference photos to Cloudinary."
           }
@@ -603,7 +1011,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -611,8 +1022,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
             },
             "description": "Create booking using JSON body with existing photo URLs."
           }
@@ -624,12 +1040,26 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/bookings?status=pending&page=1&limit=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ],
               "query": [
-                { "key": "status", "value": "pending" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Fetch all bookings created by the logged in user."
@@ -642,8 +1072,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{bookingId}}"
+              ]
             },
             "description": "Get detailed booking information."
           }
@@ -653,7 +1089,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -661,8 +1100,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "{{bookingId}}", "cancel"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{bookingId}}",
+                "cancel"
+              ]
             },
             "description": "User cancels their pending booking."
           }
@@ -674,12 +1120,28 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/bookings/admin/all?status=pending&page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "all"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "admin",
+                "all"
+              ],
               "query": [
-                { "key": "status", "value": "pending" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "Admin endpoint to view all client bookings across the system."
@@ -690,7 +1152,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -698,8 +1163,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "admin",
+                "{{bookingId}}",
+                "status"
+              ]
             },
             "description": "Admin updates booking status (e.g. pending -> confirmed -> completed)."
           }
@@ -709,7 +1182,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -717,8 +1193,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/assign-artists",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "assign-artists"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "admin",
+                "{{bookingId}}",
+                "assign-artists"
+              ]
             },
             "description": "Assign specific artists to booking slot."
           }
@@ -728,7 +1212,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -736,8 +1223,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/payment",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "payment"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "admin",
+                "{{bookingId}}",
+                "payment"
+              ]
             },
             "description": "Admin records payment receipt and updates status to partial or paid."
           }
@@ -747,7 +1242,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -755,8 +1253,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/admin/{{bookingId}}/admin-notes",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "admin", "{{bookingId}}", "admin-notes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "admin",
+                "{{bookingId}}",
+                "admin-notes"
+              ]
             },
             "description": "Update internal staff notes for the booking."
           }
@@ -764,15 +1270,689 @@
       ]
     },
     {
-      "name": "6. Redis Caching & Queue Tasks",
+      "name": "6. Reels & Video Feed (Admin Upload, Live View Analytics, Likes, Comments, Shares, Book Design)",
+      "description": "Complete Reel short video module with Admin Upload, Cloudinary video stream, Realtime View/Play tracking with User Tokens, Engagement (Likes, Comments, Shares) and Direct Design Booking capability.",
+      "item": [
+        {
+          "name": "Admin - Reel Management & Analytics",
+          "item": [
+            {
+              "name": "1. Create / Upload Reel (Admin)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.reel && json.data.reel._id) {",
+                      "        pm.collectionVariables.set('reelId', json.data.reel._id);",
+                      "        console.log('Saved reelId:', json.data.reel._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "Royal Bridal Full Hand Mehndi Design 2026",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Exquisite bridal artwork with intricate peacock and dulha-dulhan portrait details.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tags",
+                      "value": "bridal, wedding, heavy-mehndi, arabic",
+                      "type": "text"
+                    },
+                    {
+                      "key": "videoUrl",
+                      "value": "https://res.cloudinary.com/demo/video/upload/sample_reel.mp4",
+                      "type": "text"
+                    },
+                    {
+                      "key": "thumbnailUrl",
+                      "value": "https://res.cloudinary.com/demo/image/upload/sample_thumb.jpg",
+                      "type": "text"
+                    },
+                    {
+                      "key": "adminDesign",
+                      "value": "{\"designName\":\"Royal Dulha Dulhan Bridal Mehndi\",\"designCode\":\"BD-2026-ROYAL\",\"category\":\"bridal\",\"price\":5500,\"discountedPrice\":4999,\"estimatedTime\":\"3-4 hours\",\"description\":\"Intricate royal bridal artwork for wedding day.\",\"isBookable\":true}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "status",
+                      "value": "published",
+                      "type": "text"
+                    },
+                    {
+                      "key": "isPublished",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels"
+                  ]
+                },
+                "description": "Upload a new short video reel. Supports multipart video/thumbnail upload or direct videoUrl/thumbnailUrl with attached admin design details."
+              }
+            },
+            {
+              "name": "2. Get All Reels (Admin - Analytics & Filter)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/admin/all?page=1&limit=20&status=published",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "admin",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "published"
+                    }
+                  ]
+                },
+                "description": "Admin overview of all reels with total views, total likes, total comments, total shares, and total bookings converted."
+              }
+            },
+            {
+              "name": "3. Get Comprehensive Reel Details & Analytics (Kisne like kiya, kya comment kiya, kisne dekha)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/admin/{{reelId}}/details",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "admin",
+                    "{{reelId}}",
+                    "details"
+                  ]
+                },
+                "description": "Deep dive into single reel analytics: Returns complete lists of: 1) Kisne like kiya (Users with phone/email/time), 2) Kya comments aaye, 3) Kisne kisne dekha (Logged in user tokens info & anonymous viewers), 4) Bookings generated from this reel."
+              }
+            },
+            {
+              "name": "4. Update Reel (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Royal Bridal Mehndi Design 2026\",\n  \"description\": \"Updated description with pricing details\",\n  \"tags\": [\n    \"bridal\",\n    \"wedding\",\n    \"trending\"\n  ],\n  \"adminDesign\": {\n    \"price\": 5200,\n    \"discountedPrice\": 4799\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}"
+                  ]
+                },
+                "description": "Update reel title, description, tags, pricing, or design details."
+              }
+            },
+            {
+              "name": "5. Toggle Publish / Unpublish (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Quickly publish or unpublish a reel."
+              }
+            },
+            {
+              "name": "6. Delete Inappropriate Comment (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments/{{commentId}}/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments",
+                    "{{commentId}}",
+                    "admin"
+                  ]
+                },
+                "description": "Admin can delete any comment on a reel."
+              }
+            },
+            {
+              "name": "7. Delete Reel (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}"
+                  ]
+                },
+                "description": "Permanently delete a reel and clean up video/thumbnail from Cloudinary."
+              }
+            }
+          ]
+        },
+        {
+          "name": "User - Reel Feed, Engagement & Booking",
+          "item": [
+            {
+              "name": "1. Get Reel Feed (Trending / Latest / Tag Filter)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels?sort=trending&tag=bridal&page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels"
+                  ],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "trending"
+                    },
+                    {
+                      "key": "tag",
+                      "value": "bridal"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Fetch paginated feed of published reels. If user Bearer token is provided, includes isLiked status for each reel."
+              }
+            },
+            {
+              "name": "2. Get Single Reel Details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}"
+                  ]
+                },
+                "description": "Fetch detailed single reel with attached design info."
+              }
+            },
+            {
+              "name": "3. Track Reel Play / View (With User Token Tracking)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"watchDuration\": 15\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/view",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "view"
+                  ]
+                },
+                "description": "Triggered when a reel plays. If user is logged in, their user token identifies who watched, increments view count and unique views."
+              }
+            },
+            {
+              "name": "4. Toggle Like / Unlike Reel",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/like",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "like"
+                  ]
+                },
+                "description": "Toggle like or unlike on the reel for authenticated user."
+              }
+            },
+            {
+              "name": "5. Track Reel Share",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"platform\": \"whatsapp\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/share",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "share"
+                  ]
+                },
+                "description": "Track share actions across WhatsApp, Instagram, or Direct Link."
+              }
+            },
+            {
+              "name": "6. Add Comment on Reel",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.comment && json.data.comment._id) {",
+                      "        pm.collectionVariables.set('commentId', json.data.comment._id);",
+                      "        console.log('Saved commentId:', json.data.comment._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"text\": \"This bridal design is gorgeous! Can this be done on both sides of hand?\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments"
+                  ]
+                },
+                "description": "Post a comment on the reel."
+              }
+            },
+            {
+              "name": "7. Get Reel Comments",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get paginated comments on a reel with user names & profile avatars."
+              }
+            },
+            {
+              "name": "8. Delete Own Comment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments/{{commentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments",
+                    "{{commentId}}"
+                  ]
+                },
+                "description": "User deletes their own comment."
+              }
+            },
+            {
+              "name": "9. Book This Design from Reel (Direct Booking)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.booking && json.data.booking._id) {",
+                      "        pm.collectionVariables.set('bookingId', json.data.booking._id);",
+                      "        console.log('Saved bookingId from reel:', json.data.booking._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"addressId\": \"{{addressId}}\",\n  \"bookingType\": \"mehndi\",\n  \"eventName\": \"Radhika Wedding Ceremony\",\n  \"brideName\": \"Radhika Sharma\",\n  \"groomName\": \"Aman Verma\",\n  \"numberOfPeople\": 1,\n  \"customerRequirements\": \"Same exact design as shown in this reel.\",\n  \"specialInstructions\": \"Need dark stain and organic mehndi cones.\",\n  \"bookingSlots\": [\n    {\n      \"date\": \"2026-11-20T10:00:00.000Z\",\n      \"startTime\": \"11:00 AM\",\n      \"endTime\": \"03:00 PM\",\n      \"artistCount\": 2\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/book",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "book"
+                  ]
+                },
+                "description": "Directly creates a full Booking for the design featured in this reel, saves address snapshot, and increments reel conversion count."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Redis Caching & Queue Tasks",
       "item": [
         {
           "name": "6.1 Set Cache Key",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -780,8 +1960,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/redis/cache",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "cache"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "redis",
+                "cache"
+              ]
             },
             "description": "Store a key-value pair in Redis with optional TTL in seconds."
           }
@@ -789,13 +1975,22 @@
         {
           "name": "6.2 Get Cache Key",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/redis/cache/demo:banner",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "cache", "demo:banner"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "redis",
+                "cache",
+                "demo:banner"
+              ]
             },
             "description": "Retrieve cached data by key."
           }
@@ -803,13 +1998,22 @@
         {
           "name": "6.3 Delete Cache Key",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/redis/cache/demo:banner",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "cache", "demo:banner"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "redis",
+                "cache",
+                "demo:banner"
+              ]
             },
             "description": "Delete a key from Redis."
           }
@@ -817,13 +2021,21 @@
         {
           "name": "6.4 Route Response Caching Demo",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/redis/cached-data",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "cached-data"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "redis",
+                "cached-data"
+              ]
             },
             "description": "First call computes in ~1.5s (CACHE MISS). Second call returns in ~3ms (CACHE HIT)."
           }
@@ -831,10 +2043,15 @@
         {
           "name": "6.5 BullMQ Distributed Queue Task Trigger",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -842,8 +2059,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/redis/queue-job",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "queue-job"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "redis",
+                "queue-job"
+              ]
             },
             "description": "Pushes background worker job to BullMQ queue."
           }
@@ -851,10 +2074,15 @@
         {
           "name": "6.6 Redis Pub/Sub Publish",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -862,8 +2090,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/redis/publish",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "redis", "publish"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "redis",
+                "publish"
+              ]
             },
             "description": "Publishes real-time event to Redis Pub/Sub and broadcasts to connected Socket.IO clients."
           }
@@ -871,18 +2105,25 @@
       ]
     },
     {
-      "name": "7. Health Check",
+      "name": "8. Health Check",
       "item": [
         {
           "name": "7.1 Health Check API",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
             },
             "description": "Checks server health, MongoDB connection, Redis status, and uptime."
           }
