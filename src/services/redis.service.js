@@ -238,6 +238,9 @@ class RedisService {
         return null;
       }
       const subscriber = baseClient.duplicate();
+      subscriber.on('error', (err) => {
+        console.warn(`[Redis Subscriber] Socket notice (${channel}):`, err.message);
+      });
       await subscriber.connect();
 
       await subscriber.subscribe(channel, (message) => {

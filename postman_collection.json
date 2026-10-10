@@ -55,6 +55,71 @@
       "key": "commentId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "planId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "planSlug",
+      "value": "standard",
+      "type": "string"
+    },
+    {
+      "key": "inquiryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "addonId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "couponId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "couponCode",
+      "value": "BRIDAL2026",
+      "type": "string"
+    },
+    {
+      "key": "faqId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "designId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "designSlug",
+      "value": "royal-marwar-bridal-mehndi-101",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categorySlug",
+      "value": "bridal",
+      "type": "string"
+    },
+    {
+      "key": "subcategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subcategorySlug",
+      "value": "full-hand-to-elbow",
+      "type": "string"
     }
   ],
   "auth": {
@@ -68,6 +133,155 @@
     ]
   },
   "item": [
+    {
+      "name": "0. Admin Dashboard & Analytics (Stats & Charts)",
+      "description": "Comprehensive APIs for Admin Dashboard: Live overall counts, metrics, growth rates, and ready-to-plot chart datasets (Revenue trends, Donut status distributions, Category popularity, User growth, Weekday patterns).",
+      "item": [
+        {
+          "name": "0.1 Dashboard Stats & Counts (All Metric Cards & Recent Activities)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Has metrics data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.metrics).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Fetches all live counts: Total Bookings, Revenue, Clients, Designs, Reels, Inquiries, growth percentages, recent bookings, recent inquiries, and top designs."
+          }
+        },
+        {
+          "name": "0.2 Dashboard Chart & Graph Analytics (Revenue Trends, Donut, Bar, Growth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Has charts data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.revenueTrends).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.data.bookingStatusDistribution).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/charts?range=12months",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "charts"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "12months",
+                  "description": "Options: 6months, 12months, year"
+                },
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "Optional target year",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns ready-to-plot chart arrays: monthly revenue trends, booking status distribution (pie/donut), category performance (bar/radar), user growth trends, and weekday booking patterns."
+          }
+        },
+        {
+          "name": "0.3 Complete Dashboard Overview (Stats + Charts combined in 1 call)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/overview?range=12months",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "12months"
+                }
+              ]
+            },
+            "description": "Single-call fast endpoint that returns both stats and charts in a single HTTP roundtrip."
+          }
+        }
+      ]
+    },
     {
       "name": "1. Authentication & Profile",
       "item": [
@@ -323,7 +537,8 @@
                 {
                   "key": "profileImage",
                   "type": "file",
-                  "description": "Select user profile avatar (up to 200MB)"
+                  "description": "Select user profile avatar (up to 200MB) (Check checkbox and click \"Select Files\" to upload from computer)",
+                  "disabled": true
                 }
               ]
             },
@@ -385,7 +600,8 @@
                 {
                   "key": "profileImage",
                   "type": "file",
-                  "description": "Optional new profile image"
+                  "description": "Optional new profile image (Check checkbox and click \"Select Files\" to upload from computer)",
+                  "disabled": true
                 }
               ]
             },
@@ -487,6 +703,183 @@
               ]
             },
             "description": "Logs out user, removes refresh token from Redis, and blacklists access token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1.2 Admin User & Client Management (360° Profile, Block/Unblock, Delete)",
+      "description": "Admin APIs to manage all registered users/brides: Search & filter users list, view full 360° profile (all addresses, bookings, liked reels, liked designs, comments, inquiries), block/unblock accounts, and delete user accounts.",
+      "item": [
+        {
+          "name": "1.2.1 Get All Users (Admin - Search, Role, Status, Pagination, Spent & Bookings)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/users?page=1&limit=20&search=&status=all&role=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name, phone, or email"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Options: active, blocked, all"
+                },
+                {
+                  "key": "role",
+                  "value": "all",
+                  "description": "Options: user, admin, all"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Options: createdAt, name, lastLoginAt, phone",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Options: asc, desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Fetches paginated users list along with their total bookings count, completed bookings, total money spent, and addresses count."
+          }
+        },
+        {
+          "name": "1.2.2 Get User 360° Deep Profile Details (Addresses, Bookings, Liked Reels/Designs, Comments, Inquiries)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/users/{{userId}}/details",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "users",
+                "{{userId}}",
+                "details"
+              ]
+            },
+            "description": "Returns comprehensive 360 degree details of a user: Profile, saved addresses, all booking history, all liked reels (with timestamp & video info), all liked designs, all comments written across reels, and custom quote inquiries."
+          }
+        },
+        {
+          "name": "1.2.3 Block / Unblock User Account (Toggle isActive & Clear Active Sessions)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/users/{{userId}}/toggle-block",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "users",
+                "{{userId}}",
+                "toggle-block"
+              ]
+            },
+            "description": "Blocks or unblocks a user account. If isActive is omitted, toggles automatically. Immediately invalidates user cache and active token."
+          }
+        },
+        {
+          "name": "1.2.4 Delete User Account (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Permanently deletes user account, associated addresses, and clears cache."
           }
         }
       ]
@@ -662,7 +1055,8 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "description": "Select file/image to upload (up to 200MB)"
+                  "description": "Select file/image to upload (up to 200MB) (Check checkbox and click \"Select Files\" to upload from computer)",
+                  "disabled": true
                 },
                 {
                   "key": "folder",
@@ -697,7 +1091,8 @@
                 {
                   "key": "files",
                   "type": "file",
-                  "description": "Select multiple files (up to 10, 200MB each)"
+                  "description": "Select multiple files (up to 10, 200MB each) (Check checkbox and click \"Select Files\" to upload from computer)",
+                  "disabled": true
                 },
                 {
                   "key": "folder",
@@ -797,7 +1192,8 @@
                 {
                   "key": "image",
                   "type": "file",
-                  "description": "Select product image (up to 200MB)"
+                  "description": "Select product image (up to 200MB) (Check checkbox and click \"Select Files\" to upload from computer)",
+                  "disabled": true
                 }
               ]
             },
@@ -914,7 +1310,1400 @@
       ]
     },
     {
-      "name": "5. Mehndi Bookings (Full Lifecycle & Photos)",
+      "name": "5. Pricing Plans, Add-on Customizer & Festive Coupons (Price Calculator & Quote Validity Timer)",
+      "description": "Complete module with Pricing Plans (Basic, Standard, Premium), Interactive Add-on Customizer, Realtime Price Calculator, Festive Coupon Promo Engine, and Quotation Expiry Urgency Timers.",
+      "item": [
+        {
+          "name": "1. Interactive Price Calculator & Add-On Customizer",
+          "item": [
+            {
+              "name": "1.1 Get Active Add-ons (Public / Cached)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/addons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "addons"
+                  ]
+                },
+                "description": "Retrieve all active add-ons for the frontend customizer (Guest Mehndi, 3D Portrait, Feet Mehndi, Organic Cones, Speed Upgrade, Aftercare)."
+              }
+            },
+            {
+              "name": "1.2 Calculate Custom Price (Dynamic Calculator)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"planSlug\": \"standard\",\n  \"selectedAddons\": [\n    {\n      \"addonId\": \"{{addonId}}\",\n      \"quantity\": 5\n    }\n  ],\n  \"couponCode\": \"BRIDAL2026\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/calculate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "calculate"
+                  ]
+                },
+                "description": "Calculates total price in real time: Base Plan Price + Selected Add-ons Total - Coupon Discount = Final Total."
+              }
+            },
+            {
+              "name": "1.3 Create Add-on (Admin)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.addon && json.data.addon._id) {",
+                      "        pm.collectionVariables.set('addonId', json.data.addon._id);",
+                      "        console.log('Saved addonId:', json.data.addon._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Glitter & Diamond Stone Embellishment\",\n  \"slug\": \"glitter-stone-embellishment\",\n  \"category\": \"other\",\n  \"price\": 1200,\n  \"currency\": \"INR\",\n  \"unit\": \"fixed\",\n  \"description\": \"Sparkling crystal stone accents applied over dried henna design.\",\n  \"icon\": \"Sparkles\",\n  \"isActive\": true,\n  \"sortOrder\": 7\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/addons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "addons"
+                  ]
+                },
+                "description": "Admin creates a new Add-on for the price calculator."
+              }
+            },
+            {
+              "name": "1.4 Get All Add-ons (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/addons/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "addons",
+                    "admin"
+                  ]
+                },
+                "description": "Admin views all add-ons."
+              }
+            },
+            {
+              "name": "1.5 Update Add-on (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 1500,\n  \"description\": \"Premium Austrian crystal stone accents.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/addons/{{addonId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "addons",
+                    "{{addonId}}"
+                  ]
+                },
+                "description": "Update add-on pricing, description, or status."
+              }
+            },
+            {
+              "name": "1.6 Toggle Add-on Status (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/addons/{{addonId}}/toggle",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "addons",
+                    "{{addonId}}",
+                    "toggle"
+                  ]
+                },
+                "description": "Toggle active / inactive status of an add-on."
+              }
+            },
+            {
+              "name": "1.7 Delete Add-on (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/addons/{{addonId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "addons",
+                    "{{addonId}}"
+                  ]
+                },
+                "description": "Delete an add-on."
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Promo Codes & Festive Discount Engine",
+          "item": [
+            {
+              "name": "2.1 Validate Promo Coupon (Public / User)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"BRIDAL2026\",\n  \"orderAmount\": 12000\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/coupons/validate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "coupons",
+                    "validate"
+                  ]
+                },
+                "description": "Validates promo code, checks expiry, minimum order amount, and computes discount."
+              }
+            },
+            {
+              "name": "2.2 Create Coupon (Admin)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.coupon && json.data.coupon._id) {",
+                      "        pm.collectionVariables.set('couponId', json.data.coupon._id);",
+                      "        pm.collectionVariables.set('couponCode', json.data.coupon.code);",
+                      "        console.log('Saved couponId:', json.data.coupon._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"DIWALI20\",\n  \"title\": \"Diwali Celebration 20% Off\",\n  \"description\": \"Special Diwali festive discount.\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 20,\n  \"minOrderAmount\": 5000,\n  \"maxDiscountAmount\": 2500,\n  \"validUntil\": \"2027-11-01T23:59:59.000Z\",\n  \"usageLimit\": 300,\n  \"perUserLimit\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/coupons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "coupons"
+                  ]
+                },
+                "description": "Admin creates a new promo discount coupon."
+              }
+            },
+            {
+              "name": "2.3 Get All Coupons (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/coupons/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "coupons",
+                    "admin"
+                  ]
+                },
+                "description": "Admin views all coupons and redemption counts."
+              }
+            },
+            {
+              "name": "2.4 Update Coupon (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"discountValue\": 25,\n  \"title\": \"Grand Diwali Celebration 25% Off\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/coupons/{{couponId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "coupons",
+                    "{{couponId}}"
+                  ]
+                },
+                "description": "Update coupon rules, expiry, or discount value."
+              }
+            },
+            {
+              "name": "2.5 Toggle Coupon Status (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/coupons/{{couponId}}/toggle",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "coupons",
+                    "{{couponId}}",
+                    "toggle"
+                  ]
+                },
+                "description": "Toggle active / inactive status of a promo coupon."
+              }
+            },
+            {
+              "name": "2.6 Delete Coupon (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/coupons/{{couponId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "coupons",
+                    "{{couponId}}"
+                  ]
+                },
+                "description": "Delete coupon record."
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Pricing Plans (Standard Plans)",
+          "item": [
+            {
+              "name": "3.1 Get Active Pricing Plans (Public / Cached)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans"
+                  ]
+                },
+                "description": "Public view of active pricing plans (Basic, Standard, Premium)."
+              }
+            },
+            {
+              "name": "3.2 Get Single Plan by Slug or ID (Public)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans/{{planSlug}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans",
+                    "{{planSlug}}"
+                  ]
+                },
+                "description": "Get single plan by slug (e.g. 'standard') or ObjectId."
+              }
+            },
+            {
+              "name": "3.3 Create Pricing Plan (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ultra Luxury Bridal\",\n  \"slug\": \"ultra-luxury-bridal\",\n  \"description\": \"Exclusive top-tier royal bridal artistry with customized portraitures.\",\n  \"price\": 24999,\n  \"currency\": \"INR\",\n  \"billingType\": \"one-time\",\n  \"features\": [\n    \"Full Bridal Hands, Arms, Feet, and Calves\",\n    \"Customized 3D Portrait of Bride & Groom\",\n    \"4 Senior Artists dedicated\"\n  ],\n  \"isPopular\": true,\n  \"isActive\": true,\n  \"sortOrder\": 4\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans"
+                  ]
+                },
+                "description": "Admin creates a new pricing plan."
+              }
+            },
+            {
+              "name": "3.4 Get All Pricing Plans (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans",
+                    "admin"
+                  ]
+                },
+                "description": "Admin gets all plans including inactive."
+              }
+            },
+            {
+              "name": "3.5 Update Pricing Plan (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 23999\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans/{{planId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans",
+                    "{{planId}}"
+                  ]
+                },
+                "description": "Admin updates pricing plan."
+              }
+            },
+            {
+              "name": "3.6 Toggle Plan Status (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"field\": \"isPopular\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans/{{planId}}/toggle",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans",
+                    "{{planId}}",
+                    "toggle"
+                  ]
+                },
+                "description": "Toggle active or popular status."
+              }
+            },
+            {
+              "name": "3.7 Delete Pricing Plan (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/plans/{{planId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "plans",
+                    "{{planId}}"
+                  ]
+                },
+                "description": "Delete pricing plan."
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Custom Inquiries, Quotations & ⏳ Urgency Expiry Timer",
+          "item": [
+            {
+              "name": "4.1 Submit Custom Plan Request (User Custom Requirements + Addons + Coupon)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.inquiry && json.data.inquiry._id) {",
+                      "        pm.collectionVariables.set('inquiryId', json.data.inquiry._id);",
+                      "        console.log('Saved inquiryId:', json.data.inquiry._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ananya Roy\",\n  \"email\": \"ananya@example.com\",\n  \"phone\": \"9876543210\",\n  \"requestType\": \"custom\",\n  \"projectTitle\": \"Destination Wedding Luxury Bridal Mehndi\",\n  \"projectType\": \"Bridal Package\",\n  \"requirements\": \"Custom bridal package with 3D portraits and 10 guest mehndi hands.\",\n  \"features\": [\n    \"3D Portrait\",\n    \"Feet Mehndi up to calves\",\n    \"10 Guest Palms\"\n  ],\n  \"selectedAddons\": [\n    {\n      \"addon\": \"{{addonId}}\",\n      \"name\": \"Extra Guest Mehndi\",\n      \"price\": 350,\n      \"quantity\": 10,\n      \"unit\": \"per_person\"\n    }\n  ],\n  \"appliedCoupon\": {\n    \"code\": \"BRIDAL2026\",\n    \"discountType\": \"percentage\",\n    \"discountValue\": 15,\n    \"discountAmount\": 1800\n  },\n  \"budget\": {\n    \"min\": 14000,\n    \"max\": 20000,\n    \"currency\": \"INR\"\n  },\n  \"timeline\": \"3 weeks\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries"
+                  ]
+                },
+                "description": "Submit custom requirements, budget, selected add-ons, and promo code."
+              }
+            },
+            {
+              "name": "4.2 Get My Submitted Inquiries (User - With Expiry Countdown)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/my",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "my"
+                  ]
+                },
+                "description": "User retrieves their inquiries, admin quotes, and remaining seconds timer."
+              }
+            },
+            {
+              "name": "4.3 Get My Single Inquiry Details (User)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/my/{{inquiryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "my",
+                    "{{inquiryId}}"
+                  ]
+                },
+                "description": "View quotation details, price, and urgency timer."
+              }
+            },
+            {
+              "name": "4.4 Accept or Reject Admin Quote (User - Enforces Expiry Check)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"accept\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/my/{{inquiryId}}/respond",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "my",
+                    "{{inquiryId}}",
+                    "respond"
+                  ]
+                },
+                "description": "User responds to quote. If quotation timer is expired, rejection error is thrown."
+              }
+            },
+            {
+              "name": "4.5 Get All Inquiries (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/admin?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "admin"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Admin views all inquiries."
+              }
+            },
+            {
+              "name": "4.6 Get Single Inquiry Full Details (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/admin/{{inquiryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "admin",
+                    "{{inquiryId}}"
+                  ]
+                },
+                "description": "Admin views full inquiry with client budget, add-ons, and attachments."
+              }
+            },
+            {
+              "name": "4.7 Send Quotation with ⏳ Validity Timer (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"quotedPrice\": 16500,\n  \"adminResponse\": \"We reviewed your custom design requirements and would love to craft this for you! Quote includes 2 master artists and 100% organic henna.\",\n  \"validityHours\": 48,\n  \"adminNotes\": \"Customer requested 3D portraits with custom dates.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/admin/{{inquiryId}}/quote",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "admin",
+                    "{{inquiryId}}",
+                    "quote"
+                  ]
+                },
+                "description": "Admin sends quotation with validity timer (e.g. 48 hours)."
+              }
+            },
+            {
+              "name": "4.8 Update Inquiry Status (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"reviewing\",\n  \"adminNotes\": \"Senior artist review.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/admin/{{inquiryId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "admin",
+                    "{{inquiryId}}",
+                    "status"
+                  ]
+                },
+                "description": "Admin updates inquiry status."
+              }
+            },
+            {
+              "name": "4.9 Delete Inquiry (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pricing/inquiries/admin/{{inquiryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pricing",
+                    "inquiries",
+                    "admin",
+                    "{{inquiryId}}"
+                  ]
+                },
+                "description": "Delete inquiry record."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. FAQs (Frequently Asked Questions & Help Center)",
+      "description": "Complete module for FAQs Management (Admin Create, Update, Publish/Unpublish, Reorder, Delete) and Public FAQ retrieval with category filters & voting.",
+      "item": [
+        {
+          "name": "1. Public / User FAQs",
+          "item": [
+            {
+              "name": "1.1 Get All Published FAQs (Grouped by Category)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs?grouped=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs"
+                  ],
+                  "query": [
+                    {
+                      "key": "grouped",
+                      "value": "true"
+                    }
+                  ]
+                },
+                "description": "Public view of active FAQs categorized into bridal, booking, mehndi_aftercare, pricing, cancellation, etc. Cached in Redis."
+              }
+            },
+            {
+              "name": "1.2 Get FAQs by Category / Search",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs?category=bridal&search=dark",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs"
+                  ],
+                  "query": [
+                    {
+                      "key": "category",
+                      "value": "bridal"
+                    },
+                    {
+                      "key": "search",
+                      "value": "dark"
+                    }
+                  ]
+                },
+                "description": "Filter FAQs by category or search term."
+              }
+            },
+            {
+              "name": "1.3 Get Single FAQ Details",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/{{faqId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "{{faqId}}"
+                  ]
+                },
+                "description": "Get single FAQ question and answer."
+              }
+            },
+            {
+              "name": "1.4 Vote FAQ (Helpful / Not Helpful)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isHelpful\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/{{faqId}}/vote",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "{{faqId}}",
+                    "vote"
+                  ]
+                },
+                "description": "User votes whether the FAQ was helpful or not."
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Admin FAQ Management",
+          "item": [
+            {
+              "name": "2.1 Create FAQ (Admin)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.faq && json.data.faq._id) {",
+                      "        pm.collectionVariables.set('faqId', json.data.faq._id);",
+                      "        console.log('Saved faqId:', json.data.faq._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"Do you offer complimentary mehndi trial sessions before the wedding?\",\n  \"answer\": \"Yes, we offer paid trial sessions which are 100% adjusted into your final bridal booking package once confirmed!\",\n  \"category\": \"bridal\",\n  \"tags\": [\n    \"trial\",\n    \"bridal consultation\",\n    \"preview\"\n  ],\n  \"isPublished\": true,\n  \"sortOrder\": 8\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs"
+                  ]
+                },
+                "description": "Admin creates a new FAQ."
+              }
+            },
+            {
+              "name": "2.2 Get All FAQs (Admin - Includes Unpublished)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "admin",
+                    "all"
+                  ]
+                },
+                "description": "Admin views all FAQs with category breakdown and metrics."
+              }
+            },
+            {
+              "name": "2.3 Update FAQ (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"Do you offer trial sessions before the wedding?\",\n  \"answer\": \"Yes, trial sessions are available and adjusted against your final bridal package.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/{{faqId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "{{faqId}}"
+                  ]
+                },
+                "description": "Update FAQ question, answer, category, or tags."
+              }
+            },
+            {
+              "name": "2.4 Toggle Publish / Unpublish Status (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/{{faqId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "{{faqId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Toggle publish / unpublish status of an FAQ."
+              }
+            },
+            {
+              "name": "2.5 Batch Reorder FAQs (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orders\": [\n    {\n      \"id\": \"{{faqId}}\",\n      \"sortOrder\": 1\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/reorder",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "admin",
+                    "reorder"
+                  ]
+                },
+                "description": "Batch update sort order of FAQs for custom display priority."
+              }
+            },
+            {
+              "name": "2.6 Delete FAQ (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/{{faqId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "{{faqId}}"
+                  ]
+                },
+                "description": "Permanently delete an FAQ."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Mehndi Bookings (Full Lifecycle & Photos)",
       "item": [
         {
           "name": "5.1 Create Booking (Multipart with Reference Photos)",
@@ -989,7 +2778,8 @@
                 {
                   "key": "referencePhotos",
                   "type": "file",
-                  "description": "Select reference mehndi photo to upload to Cloudinary"
+                  "description": "Select reference mehndi photo to upload to Cloudinary (Check checkbox and click \"Select Files\" to upload from computer)",
+                  "disabled": true
                 }
               ]
             },
@@ -1270,14 +3060,103 @@
       ]
     },
     {
-      "name": "6. Reels & Video Feed (Admin Upload, Live View Analytics, Likes, Comments, Shares, Book Design)",
-      "description": "Complete Reel short video module with Admin Upload, Cloudinary video stream, Realtime View/Play tracking with User Tokens, Engagement (Likes, Comments, Shares) and Direct Design Booking capability.",
+      "name": "8. Category & Subcategory Module (Dynamic Admin Hierarchy & User Filters)",
+      "description": "Complete module for Mehndi Categories & Subcategories. Admin can create, edit, delete, reorder, and toggle publish/featured status. Users can fetch categories with nested subcategories, filter designs by category/subcategory, and view top designs per category.",
       "item": [
         {
-          "name": "Admin - Reel Management & Analytics",
+          "name": "1. Public / User Category APIs",
           "item": [
             {
-              "name": "1. Create / Upload Reel (Admin)",
+              "name": "1.1 Get Public Categories Tree (Nested Subcategories + Counts)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories"
+                  ]
+                },
+                "description": "Fetches all published categories with their active subcategories nested inside, along with live design counts. Cached in Redis for ultra-fast performance."
+              }
+            },
+            {
+              "name": "1.2 Get Single Category by Slug or ID (with Top Designs)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.category && json.data.category._id) {",
+                      "        pm.collectionVariables.set('categoryId', json.data.category._id);",
+                      "        pm.collectionVariables.set('categorySlug', json.data.category.slug);",
+                      "        console.log('Saved categoryId:', json.data.category._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categorySlug}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "{{categorySlug}}"
+                  ]
+                },
+                "description": "Fetches category details, its subcategories, and top 6 featured designs in this category."
+              }
+            },
+            {
+              "name": "1.3 Get Subcategories of a Category",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categorySlug}}/subcategories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "{{categorySlug}}",
+                    "subcategories"
+                  ]
+                },
+                "description": "Fetches only the active subcategories for a given parent category slug or ID."
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Admin Category Management",
+          "item": [
+            {
+              "name": "2.1 Create Category (Form-Data: Image File or URL + Fields)",
               "event": [
                 {
                   "listen": "test",
@@ -1285,9 +3164,10 @@
                     "exec": [
                       "if (pm.response.code === 201) {",
                       "    var json = pm.response.json();",
-                      "    if (json.data && json.data.reel && json.data.reel._id) {",
-                      "        pm.collectionVariables.set('reelId', json.data.reel._id);",
-                      "        console.log('Saved reelId:', json.data.reel._id);",
+                      "    if (json.data && json.data.category && json.data.category._id) {",
+                      "        pm.collectionVariables.set('categoryId', json.data.category._id);",
+                      "        pm.collectionVariables.set('categorySlug', json.data.category.slug);",
+                      "        console.log('Saved categoryId:', json.data.category._id);",
                       "    }",
                       "}"
                     ],
@@ -1312,62 +3192,69 @@
                   "mode": "formdata",
                   "formdata": [
                     {
-                      "key": "title",
-                      "value": "Royal Bridal Full Hand Mehndi Design 2026",
+                      "key": "image",
+                      "type": "file",
+                      "description": "Select Category Cover Image file (JPG, PNG, WEBP) (Check checkbox and click \"Select Files\" to upload from computer)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "name",
+                      "value": "Contemporary Western Henna",
+                      "type": "text"
+                    },
+                    {
+                      "key": "slug",
+                      "value": "contemporary-western",
                       "type": "text"
                     },
                     {
                       "key": "description",
-                      "value": "Exquisite bridal artwork with intricate peacock and dulha-dulhan portrait details.",
+                      "value": "Modern fusion tattoos and lace wrist cuffs tailored for cocktail events.",
                       "type": "text"
                     },
                     {
-                      "key": "tags",
-                      "value": "bridal, wedding, heavy-mehndi, arabic",
-                      "type": "text"
-                    },
-                    {
-                      "key": "videoUrl",
-                      "value": "https://res.cloudinary.com/demo/video/upload/sample_reel.mp4",
-                      "type": "text"
-                    },
-                    {
-                      "key": "thumbnailUrl",
-                      "value": "https://res.cloudinary.com/demo/image/upload/sample_thumb.jpg",
-                      "type": "text"
-                    },
-                    {
-                      "key": "adminDesign",
-                      "value": "{\"designName\":\"Royal Dulha Dulhan Bridal Mehndi\",\"designCode\":\"BD-2026-ROYAL\",\"category\":\"bridal\",\"price\":5500,\"discountedPrice\":4999,\"estimatedTime\":\"3-4 hours\",\"description\":\"Intricate royal bridal artwork for wedding day.\",\"isBookable\":true}",
-                      "type": "text"
-                    },
-                    {
-                      "key": "status",
-                      "value": "published",
+                      "key": "icon",
+                      "value": "sparkles",
                       "type": "text"
                     },
                     {
                       "key": "isPublished",
                       "value": "true",
                       "type": "text"
+                    },
+                    {
+                      "key": "isFeatured",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "9",
+                      "type": "text"
+                    },
+                    {
+                      "key": "imageUrl",
+                      "value": "https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?q=80&w=1200&auto=format&fit=crop",
+                      "type": "text",
+                      "description": "Online category image URL"
                     }
                   ]
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels",
+                  "raw": "{{baseUrl}}/api/categories",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels"
+                    "categories"
                   ]
                 },
-                "description": "Upload a new short video reel. Supports multipart video/thumbnail upload or direct videoUrl/thumbnailUrl with attached admin design details."
+                "description": "Admin creates a new category (supports JSON or multipart image upload)."
               }
             },
             {
-              "name": "2. Get All Reels (Admin - Analytics & Filter)",
+              "name": "2.2 Get All Categories (Admin - Overview with Counts)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1382,67 +3269,22 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels/admin/all?page=1&limit=20&status=published",
+                  "raw": "{{baseUrl}}/api/categories/admin/all",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels",
+                    "categories",
                     "admin",
                     "all"
-                  ],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "20"
-                    },
-                    {
-                      "key": "status",
-                      "value": "published"
-                    }
                   ]
                 },
-                "description": "Admin overview of all reels with total views, total likes, total comments, total shares, and total bookings converted."
+                "description": "Admin views all categories with live subcategories count and designs count, including unpublished items."
               }
             },
             {
-              "name": "3. Get Comprehensive Reel Details & Analytics (Kisne like kiya, kya comment kiya, kisne dekha)",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/admin/{{reelId}}/details",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "admin",
-                    "{{reelId}}",
-                    "details"
-                  ]
-                },
-                "description": "Deep dive into single reel analytics: Returns complete lists of: 1) Kisne like kiya (Users with phone/email/time), 2) Kya comments aaye, 3) Kisne kisne dekha (Logged in user tokens info & anonymous viewers), 4) Bookings generated from this reel."
-              }
-            },
-            {
-              "name": "4. Update Reel (Admin)",
+              "name": "2.3 Update Category (Form-Data: Image File + Fields)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1455,32 +3297,49 @@
                   ]
                 },
                 "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"title\": \"Updated Royal Bridal Mehndi Design 2026\",\n  \"description\": \"Updated description with pricing details\",\n  \"tags\": [\n    \"bridal\",\n    \"wedding\",\n    \"trending\"\n  ],\n  \"adminDesign\": {\n    \"price\": 5200,\n    \"discountedPrice\": 4799\n  }\n}"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "description": "Select new Category Image file to replace (Check checkbox and click \"Select Files\" to upload from computer)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "name",
+                      "value": "Contemporary & Fusion Henna",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Modern fusion tattoos and lace wrist cuffs for parties and cocktails.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "isFeatured",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels",
-                    "{{reelId}}"
+                    "categories",
+                    "{{categoryId}}"
                   ]
                 },
-                "description": "Update reel title, description, tags, pricing, or design details."
+                "description": "Admin updates category name, description, image, or sort order."
               }
             },
             {
-              "name": "5. Toggle Publish / Unpublish (Admin)",
+              "name": "2.4 Toggle Publish / Unpublish Category (Admin)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1495,22 +3354,91 @@
                 "method": "PATCH",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/publish",
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}/publish",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels",
-                    "{{reelId}}",
+                    "categories",
+                    "{{categoryId}}",
                     "publish"
                   ]
                 },
-                "description": "Quickly publish or unpublish a reel."
+                "description": "Toggle whether a category is visible to users on the app."
               }
             },
             {
-              "name": "6. Delete Inappropriate Comment (Admin)",
+              "name": "2.5 Toggle Featured Category (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}/featured",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "{{categoryId}}",
+                    "featured"
+                  ]
+                },
+                "description": "Feature/unfeature a category on homepage hero."
+              }
+            },
+            {
+              "name": "2.6 Batch Reorder Categories (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orders\": [\n    {\n      \"id\": \"{{categoryId}}\",\n      \"sortOrder\": 1\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/admin/reorder",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "admin",
+                    "reorder"
+                  ]
+                },
+                "description": "Reorder categories display sequence."
+              }
+            },
+            {
+              "name": "2.7 Delete Category (Admin)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1525,241 +3453,26 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments/{{commentId}}/admin",
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels",
-                    "{{reelId}}",
-                    "comments",
-                    "{{commentId}}",
-                    "admin"
+                    "categories",
+                    "{{categoryId}}"
                   ]
                 },
-                "description": "Admin can delete any comment on a reel."
-              }
-            },
-            {
-              "name": "7. Delete Reel (Admin)",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}"
-                  ]
-                },
-                "description": "Permanently delete a reel and clean up video/thumbnail from Cloudinary."
+                "description": "Delete category and its subcategories (only allowed if 0 designs are attached)."
               }
             }
           ]
         },
         {
-          "name": "User - Reel Feed, Engagement & Booking",
+          "name": "3. Admin Subcategory Management",
           "item": [
             {
-              "name": "1. Get Reel Feed (Trending / Latest / Tag Filter)",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels?sort=trending&tag=bridal&page=1&limit=10",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels"
-                  ],
-                  "query": [
-                    {
-                      "key": "sort",
-                      "value": "trending"
-                    },
-                    {
-                      "key": "tag",
-                      "value": "bridal"
-                    },
-                    {
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "10"
-                    }
-                  ]
-                },
-                "description": "Fetch paginated feed of published reels. If user Bearer token is provided, includes isLiked status for each reel."
-              }
-            },
-            {
-              "name": "2. Get Single Reel Details",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}"
-                  ]
-                },
-                "description": "Fetch detailed single reel with attached design info."
-              }
-            },
-            {
-              "name": "3. Track Reel Play / View (With User Token Tracking)",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"watchDuration\": 15\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/view",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}",
-                    "view"
-                  ]
-                },
-                "description": "Triggered when a reel plays. If user is logged in, their user token identifies who watched, increments view count and unique views."
-              }
-            },
-            {
-              "name": "4. Toggle Like / Unlike Reel",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/like",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}",
-                    "like"
-                  ]
-                },
-                "description": "Toggle like or unlike on the reel for authenticated user."
-              }
-            },
-            {
-              "name": "5. Track Reel Share",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"platform\": \"whatsapp\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/share",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}",
-                    "share"
-                  ]
-                },
-                "description": "Track share actions across WhatsApp, Instagram, or Direct Link."
-              }
-            },
-            {
-              "name": "6. Add Comment on Reel",
+              "name": "3.1 Create Subcategory (Form-Data: Image File + Fields)",
               "event": [
                 {
                   "listen": "test",
@@ -1767,9 +3480,10 @@
                     "exec": [
                       "if (pm.response.code === 201) {",
                       "    var json = pm.response.json();",
-                      "    if (json.data && json.data.comment && json.data.comment._id) {",
-                      "        pm.collectionVariables.set('commentId', json.data.comment._id);",
-                      "        console.log('Saved commentId:', json.data.comment._id);",
+                      "    if (json.data && json.data.subcategory && json.data.subcategory._id) {",
+                      "        pm.collectionVariables.set('subcategoryId', json.data.subcategory._id)",
+                      "        pm.collectionVariables.set('subcategorySlug', json.data.subcategory.slug);",
+                      "        console.log('Saved subcategoryId:', json.data.subcategory._id);",
                       "    }",
                       "}"
                     ],
@@ -1789,6 +3503,196 @@
                   ]
                 },
                 "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "description": "Select Subcategory Image file (Check checkbox and click \"Select Files\" to upload from computer)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "name",
+                      "value": "Negative Space Botanical Vines",
+                      "type": "text"
+                    },
+                    {
+                      "key": "slug",
+                      "value": "negative-space-botanical-vines",
+                      "type": "text"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}",
+                      "type": "text",
+                      "description": "Parent Category ObjectId"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Delicate botanical vines creating high-fashion negative space cutouts.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "isPublished",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/subcategories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "subcategories"
+                  ]
+                },
+                "description": "Admin creates a subcategory under a specific parent category."
+              }
+            },
+            {
+              "name": "3.2 Get All Subcategories (Admin - Filterable by categoryId)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/subcategories/admin/all?categoryId={{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "subcategories",
+                    "admin",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}"
+                    }
+                  ]
+                },
+                "description": "Admin lists all subcategories or filters by parent category."
+              }
+            },
+            {
+              "name": "3.3 Update Subcategory (Form-Data: Image File + Fields)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "description": "Select new Subcategory Image file (Check checkbox and click \"Select Files\" to upload from computer)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "name",
+                      "value": "Negative Space Botanical Vines (Updated)",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "High fashion botanical cutouts.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/subcategories/{{subcategoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "subcategories",
+                    "{{subcategoryId}}"
+                  ]
+                },
+                "description": "Admin updates subcategory name, description, or parent category."
+              }
+            },
+            {
+              "name": "3.4 Toggle Publish / Unpublish Subcategory (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/subcategories/{{subcategoryId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "categories",
+                    "subcategories",
+                    "{{subcategoryId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Toggle publish status of a subcategory."
+              }
+            },
+            {
+              "name": "3.5 Batch Reorder Subcategories (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
                 "header": [
                   {
                     "key": "Content-Type",
@@ -1797,58 +3701,26 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"text\": \"This bridal design is gorgeous! Can this be done on both sides of hand?\"\n}"
+                  "raw": "{\n  \"orders\": [\n    {\n      \"id\": \"{{subcategoryId}}\",\n      \"sortOrder\": 1\n    }\n  ]\n}"
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments",
+                  "raw": "{{baseUrl}}/api/categories/subcategories/admin/reorder",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels",
-                    "{{reelId}}",
-                    "comments"
+                    "categories",
+                    "subcategories",
+                    "admin",
+                    "reorder"
                   ]
                 },
-                "description": "Post a comment on the reel."
+                "description": "Batch reorder subcategories display order."
               }
             },
             {
-              "name": "7. Get Reel Comments",
-              "request": {
-                "auth": {
-                  "type": "noauth"
-                },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments?page=1&limit=20",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}",
-                    "comments"
-                  ],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "20"
-                    }
-                  ]
-                },
-                "description": "Get paginated comments on a reel with user names & profile avatars."
-              }
-            },
-            {
-              "name": "8. Delete Own Comment",
+              "name": "3.6 Delete Subcategory (Admin)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1863,75 +3735,18 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments/{{commentId}}",
+                  "raw": "{{baseUrl}}/api/categories/subcategories/{{subcategoryId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
-                    "reels",
-                    "{{reelId}}",
-                    "comments",
-                    "{{commentId}}"
+                    "categories",
+                    "subcategories",
+                    "{{subcategoryId}}"
                   ]
                 },
-                "description": "User deletes their own comment."
-              }
-            },
-            {
-              "name": "9. Book This Design from Reel (Direct Booking)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 201) {",
-                      "    var json = pm.response.json();",
-                      "    if (json.data && json.data.booking && json.data.booking._id) {",
-                      "        pm.collectionVariables.set('bookingId', json.data.booking._id);",
-                      "        console.log('Saved bookingId from reel:', json.data.booking._id);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{accessToken}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"addressId\": \"{{addressId}}\",\n  \"bookingType\": \"mehndi\",\n  \"eventName\": \"Radhika Wedding Ceremony\",\n  \"brideName\": \"Radhika Sharma\",\n  \"groomName\": \"Aman Verma\",\n  \"numberOfPeople\": 1,\n  \"customerRequirements\": \"Same exact design as shown in this reel.\",\n  \"specialInstructions\": \"Need dark stain and organic mehndi cones.\",\n  \"bookingSlots\": [\n    {\n      \"date\": \"2026-11-20T10:00:00.000Z\",\n      \"startTime\": \"11:00 AM\",\n      \"endTime\": \"03:00 PM\",\n      \"artistCount\": 2\n    }\n  ]\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/book",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "reels",
-                    "{{reelId}}",
-                    "book"
-                  ]
-                },
-                "description": "Directly creates a full Booking for the design featured in this reel, saves address snapshot, and increments reel conversion count."
+                "description": "Delete a subcategory."
               }
             }
           ]
@@ -1939,7 +3754,7 @@
       ]
     },
     {
-      "name": "7. Redis Caching & Queue Tasks",
+      "name": "10. Redis Caching & Queue Tasks",
       "item": [
         {
           "name": "6.1 Set Cache Key",
@@ -2105,7 +3920,7 @@
       ]
     },
     {
-      "name": "8. Health Check",
+      "name": "11. Health Check",
       "item": [
         {
           "name": "7.1 Health Check API",
@@ -2127,6 +3942,716 @@
             },
             "description": "Checks server health, MongoDB connection, Redis status, and uptime."
           }
+        }
+      ]
+    },
+    {
+      "name": "10. Reels & Video Feed Module (Admin Upload & Analytics + User Watch Tracking, Likes, Comments, Booking)",
+      "description": "Complete Instagram/TikTok style Mehndi Reels system. Includes Admin multipart video & thumbnail uploads, user engagement (likes, views with watch duration tracking, comments, shares), admin comprehensive audit (who watched, who commented), and direct booking (\"Book This Design from Reel\").",
+      "item": [
+        {
+          "name": "1. Admin Reel Management",
+          "item": [
+            {
+              "name": "1.1 Create Reel (Raw JSON: Video URL + Admin Design + Fields)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.reel && json.data.reel._id) {",
+                      "        pm.collectionVariables.set('reelId', json.data.reel._id);",
+                      "        console.log('Saved reelId:', json.data.reel._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Royal Rajasthani Marwar Bridal Mehndi Reveal\",\n  \"description\": \"Full hand bridal mehndi reveal with traditional peacock and dulha-dulhan motifs.\",\n  \"tags\": [\n    \"bridal\",\n    \"marwari\",\n    \"wedding\",\n    \"mehndi\",\n    \"intricate\"\n  ],\n  \"videoUrl\": \"https://assets.mixkit.co/videos/preview/mixkit-hands-of-an-indian-bride-with-henna-and-jewelry-41372-large.mp4\",\n  \"thumbnailUrl\": \"https://images.unsplash.com/photo-1599818499218-55ed400708b8?q=80&w=800&auto=format&fit=crop\",\n  \"isPublished\": true,\n  \"status\": \"published\",\n  \"adminDesign\": {\n    \"designName\": \"Royal Rajasthani Bridal Masterpiece\",\n    \"designCode\": \"BRI-101\",\n    \"category\": \"bridal\",\n    \"price\": 15000,\n    \"discountedPrice\": 12999,\n    \"estimatedTime\": \"4-5 hours\",\n    \"description\": \"Authentic royal Rajasthani bridal mehndi pattern.\",\n    \"isBookable\": true,\n    \"images\": [\n      \"https://images.unsplash.com/photo-1599818499218-55ed400708b8?q=80&w=1200&auto=format&fit=crop\",\n      \"https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=1200&auto=format&fit=crop\"\n    ]\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels"
+                  ]
+                },
+                "description": "Admin creates a new reel with online video URL and attached bookable design."
+              }
+            },
+            {
+              "name": "1.2 Create Reel (Multipart Form-Data: Video File + Thumbnail + Design Photos)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.reel && json.data.reel._id) {",
+                      "        pm.collectionVariables.set('reelId', json.data.reel._id);",
+                      "        console.log('Saved reelId:', json.data.reel._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "video",
+                      "type": "file",
+                      "description": "Select reel video file (MP4, MOV, WEBM) - max 200MB (Check checkbox and select file)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "thumbnail",
+                      "type": "file",
+                      "description": "Select custom cover thumbnail image file (JPG, PNG, WEBP) (Check checkbox and select file)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "designImages",
+                      "type": "file",
+                      "description": "Select photo(s) of the bookable design (Check checkbox and select files)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "title",
+                      "value": "Royal Marwar Bridal Mehndi Video Showcase",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Exquisite slow-motion close-up of intricate marwari henna details.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tags",
+                      "value": "bridal, marwari, henna, royal, wedding",
+                      "type": "text"
+                    },
+                    {
+                      "key": "adminDesign",
+                      "value": "{\"designName\":\"Royal Marwar Bridal Showcase\",\"category\":\"bridal\",\"price\":15000,\"discountedPrice\":12999,\"estimatedTime\":\"4-5 hours\",\"isBookable\":true}",
+                      "type": "text",
+                      "description": "JSON string of admin design details attached to this reel"
+                    },
+                    {
+                      "key": "videoUrl",
+                      "value": "https://assets.mixkit.co/videos/preview/mixkit-hands-of-an-indian-bride-with-henna-and-jewelry-41372-large.mp4",
+                      "type": "text",
+                      "description": "Used when video file is not selected"
+                    },
+                    {
+                      "key": "thumbnailUrl",
+                      "value": "https://images.unsplash.com/photo-1599818499218-55ed400708b8?q=80&w=800&auto=format&fit=crop",
+                      "type": "text"
+                    },
+                    {
+                      "key": "isPublished",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels"
+                  ]
+                },
+                "description": "Admin uploads video & thumbnail files via multipart form-data."
+              }
+            },
+            {
+              "name": "1.3 Get All Reels (Admin - Includes Analytics & Engagement)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/admin/all?page=1&limit=20&status=all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "admin",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "all",
+                      "description": "published, draft, archived, all"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Search by title or tags",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Admin fetches all reels with view counts, unique viewers, like counts, share counts, and comment counts."
+              }
+            },
+            {
+              "name": "1.4 Get Deep Reel Details (Admin - Who Liked, Who Commented, Watch Tracking)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/admin/{{reelId}}/details",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "admin",
+                    "{{reelId}}",
+                    "details"
+                  ]
+                },
+                "description": "Admin views full 360 engagement of a reel: List of users who liked, list of users who watched with watchDuration, and all comments."
+              }
+            },
+            {
+              "name": "1.5 Update Reel (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Royal Rajasthani Marwar Bridal Mehndi (Updated)\",\n  \"description\": \"Updated description with booking offers.\",\n  \"tags\": [\n    \"bridal\",\n    \"henna\",\n    \"luxury\"\n  ],\n  \"adminDesign\": {\n    \"price\": 16000,\n    \"discountedPrice\": 13500\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}"
+                  ]
+                },
+                "description": "Admin updates reel title, description, tags, pricing, or status."
+              }
+            },
+            {
+              "name": "1.6 Toggle Publish / Unpublish (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Toggles isPublished status between true and false."
+              }
+            },
+            {
+              "name": "1.7 Admin Delete Any Comment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments/{{commentId}}/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments",
+                    "{{commentId}}",
+                    "admin"
+                  ]
+                },
+                "description": "Admin can moderate and remove any inappropriate comment on a reel."
+              }
+            },
+            {
+              "name": "1.8 Delete Reel (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}"
+                  ]
+                },
+                "description": "Admin permanently deletes a reel and invalidates cache."
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. User & Public Reels Feed & Engagement",
+          "item": [
+            {
+              "name": "2.1 Get Reels Feed (Public / Infinite Scroll / Trending)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels?sort=trending&page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels"
+                  ],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "trending",
+                      "description": "trending, latest, popular"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "tag",
+                      "value": "bridal",
+                      "description": "Filter by specific tag",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Public endless feed of short video reels with cached performance."
+              }
+            },
+            {
+              "name": "2.2 Get Single Reel by ID",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}"
+                  ]
+                },
+                "description": "Fetches single reel details including attached admin design."
+              }
+            },
+            {
+              "name": "2.3 Track Reel Play / View (Watch Duration Tracking)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"watchDuration\": 15\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/view",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "view"
+                  ]
+                },
+                "description": "Tracks user view. If Bearer token is provided, tracks which user watched and for how many seconds."
+              }
+            },
+            {
+              "name": "2.4 Toggle Like / Unlike Reel (User)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/like",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "like"
+                  ]
+                },
+                "description": "User likes or unlikes a reel."
+              }
+            },
+            {
+              "name": "2.5 Track Reel Share (WhatsApp / Social / Copy Link)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"platform\": \"whatsapp\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/share",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "share"
+                  ]
+                },
+                "description": "Tracks sharing metrics (whatsapp, instagram, copy_link)."
+              }
+            },
+            {
+              "name": "2.6 Get Comments of a Reel (Public)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Returns paginated comments on a reel with user names and profile pictures."
+              }
+            },
+            {
+              "name": "2.7 Add Comment on Reel (User)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.comment && json.data.comment._id) {",
+                      "        pm.collectionVariables.set('commentId', json.data.comment._id);",
+                      "        console.log('Saved commentId:', json.data.comment._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"text\": \"Such a breathtaking bridal mehndi pattern! Loving the fine lines.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments"
+                  ]
+                },
+                "description": "Logged-in user posts a comment on a reel."
+              }
+            },
+            {
+              "name": "2.8 Delete Own Comment (User)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/comments/{{commentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "comments",
+                    "{{commentId}}"
+                  ]
+                },
+                "description": "User deletes their own comment."
+              }
+            },
+            {
+              "name": "2.9 Direct Booking: \"Book This Design\" From Reel (User)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"addressId\": \"{{addressId}}\",\n  \"bookingSlots\": [\n    {\n      \"date\": \"2026-11-20\",\n      \"startTime\": \"10:00 AM\",\n      \"endTime\": \"02:00 PM\",\n      \"artistCount\": 1\n    }\n  ],\n  \"customerRequirements\": \"Booked directly from royal bridal reel.\",\n  \"numberOfPeople\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reels/{{reelId}}/book",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reels",
+                    "{{reelId}}",
+                    "book"
+                  ]
+                },
+                "description": "Converts reel viewer into a booking order by directly locking the design shown in the reel."
+              }
+            }
+          ]
         }
       ]
     }

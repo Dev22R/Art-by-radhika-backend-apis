@@ -14,6 +14,10 @@ const {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  getAllUsersAdmin,
+  getUserDetailsAdmin,
+  toggleBlockUserAdmin,
+  deleteUserAccountAdmin,
 } = require('./user.controller');
 const {
   protect,
@@ -178,5 +182,57 @@ router.delete('/addresses/:addressId', protect, deleteAddress);
  * @access  Private
  */
 router.patch('/addresses/:addressId/default', protect, setDefaultAddress);
+
+// ==========================================
+// ADMIN USER & CLIENT MANAGEMENT ROUTES
+// ==========================================
+
+/**
+ * @route   GET /api/auth/admin/users (or /api/auth/admin/all)
+ * @desc    Get all users with search, role filter, status filter, and pagination
+ * @access  Private (Admin)
+ */
+router.get(
+  ['/admin/users', '/admin/all'],
+  protect,
+  authorize('admin'),
+  getAllUsersAdmin
+);
+
+/**
+ * @route   GET /api/auth/admin/users/:userId/details (or /api/auth/admin/users/:userId)
+ * @desc    Get full 360° user profile (addresses, bookings, liked reels, liked designs, comments, inquiries)
+ * @access  Private (Admin)
+ */
+router.get(
+  ['/admin/users/:userId/details', '/admin/users/:userId'],
+  protect,
+  authorize('admin'),
+  getUserDetailsAdmin
+);
+
+/**
+ * @route   PATCH /api/auth/admin/users/:userId/toggle-block (or /api/auth/admin/users/:userId/status)
+ * @desc    Block or Unblock a user account (toggles isActive & clears session)
+ * @access  Private (Admin)
+ */
+router.patch(
+  ['/admin/users/:userId/toggle-block', '/admin/users/:userId/status'],
+  protect,
+  authorize('admin'),
+  toggleBlockUserAdmin
+);
+
+/**
+ * @route   DELETE /api/auth/admin/users/:userId
+ * @desc    Permanently delete a user account and associated addresses
+ * @access  Private (Admin)
+ */
+router.delete(
+  '/admin/users/:userId',
+  protect,
+  authorize('admin'),
+  deleteUserAccountAdmin
+);
 
 module.exports = router;

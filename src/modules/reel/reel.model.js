@@ -89,18 +89,7 @@ const reelSchema = new mongoose.Schema(
       },
       category: {
         type: String,
-        enum: [
-          'bridal',
-          'arabic',
-          'indo-arabic',
-          'portrait',
-          'minimal',
-          'feet',
-          'traditional',
-          'contemporary',
-          'party',
-          'other',
-        ],
+        trim: true,
         default: 'bridal',
       },
       price: {

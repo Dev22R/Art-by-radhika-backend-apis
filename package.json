@@ -10,6 +10,11 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed:admin": "node src/seeders/admin.seeder.js",
+    "seed:pricing": "node src/seeders/pricingPlan.seeder.js",
+    "seed:addons": "node src/seeders/pricingAddonAndCoupon.seeder.js",
+    "seed:faqs": "node src/seeders/faq.seeder.js",
+    "seed:categories": "node src/seeders/category.seeder.js",
+    "seed:designs": "node src/seeders/design.seeder.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

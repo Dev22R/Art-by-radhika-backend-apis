@@ -92,13 +92,12 @@ router.get(
   reelController.getReelDetailsAdmin
 );
 
-// Create / Upload Reel (Admin)
+// Create / Upload Reel (Admin) - Supports POST /, POST /create, POST /admin, POST /admin/create
 router.post(
-  '/',
+  ['/', '/create', '/admin', '/admin/create'],
   protect,
   authorize('admin'),
   reelUpload,
-  handleMulterError,
   validateCreateReel,
   reelController.createReel
 );
@@ -109,7 +108,6 @@ router.put(
   protect,
   authorize('admin'),
   reelUpload,
-  handleMulterError,
   reelController.updateReel
 );
 

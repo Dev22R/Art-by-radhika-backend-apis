@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('./user.model');
 const UserAddress = require('./userAddress.model');
+const Booking = require('../booking/booking.model');
+const Reel = require('../reel/reel.model');
+const Design = require('../design/design.model');
+const PlanInquiry = require('../pricing/planInquiry.model');
 const config = require('../../config/env');
 const redisService = require('../../services/redis.service');
 const { uploadToCloudinary } = require('../../services/cloudinary.service');
@@ -721,6 +726,465 @@ async function setDefaultAddress(req, res, next) {
   }
 }
 
+// ==========================================
+// ADMIN USER MANAGEMENT CONTROLLERS
+// ==========================================
+
+/**
+ * 1. Get All Users (Admin)
+ * Supports pagination, search (name, phone, email), role filter, status filter, and sorting.
+ * Endpoint: GET /api/auth/admin/users or GET /api/users/admin/all
+ */
+async function getAllUsersAdmin(req, res, next) {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      role,
+      status, // 'active' | 'blocked' | 'all'
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Default: Exclude admin profiles from user/client management list
+    const filter = {
+      role: { $ne: 'admin' },
+    };
+
+    // Role filter
+    if (role && role !== 'all') {
+      filter.role = role.trim().toLowerCase();
+    }
+
+    // Status filter
+    if (status === 'active') {
+      filter.isActive = true;
+    } else if (status === 'blocked' || status === 'inactive') {
+      filter.isActive = false;
+    }
+
+    // Search by Name, Phone, or Email
+    if (search && search.trim().length > 0) {
+      const cleanSearch = search.trim();
+      const regex = new RegExp(cleanSearch, 'i');
+      filter.$or = [
+        { name: regex },
+        { phone: regex },
+        { email: regex },
+      ];
+    }
+
+    // Sort definition
+    const sortField = ['createdAt', 'name', 'lastLoginAt', 'phone'].includes(sortBy)
+      ? sortBy
+      : 'createdAt';
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+
+    // Fetch users and counts
+    const [users, totalUsers, activeCount, blockedCount] = await Promise.all([
+      User.find(filter)
+        .sort({ [sortField]: sortDirection })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      User.countDocuments(filter),
+      User.countDocuments({ ...filter, isActive: true }),
+      User.countDocuments({ ...filter, isActive: false }),
+    ]);
+
+    // Gather aggregate stats for the fetched users (Bookings count, total spent, addresses count)
+    const userIds = users.map((u) => u._id);
+
+    const [bookingAggs, addressCounts, likedReelCounts, likedDesignCounts] = await Promise.all([
+      // Bookings summary per user
+      Booking.aggregate([
+        { $match: { userId: { $in: userIds } } },
+        {
+          $group: {
+            _id: '$userId',
+            totalBookings: { $sum: 1 },
+            completedBookings: {
+              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+            },
+            totalSpent: {
+              $sum: {
+                $cond: [{ $not: [{ $in: ['$status', ['cancelled', 'rejected']] }] }, '$paidAmount', 0],
+              },
+            },
+          },
+        },
+      ]),
+
+      // Addresses count per user
+      UserAddress.aggregate([
+        { $match: { userId: { $in: userIds }, isActive: true } },
+        { $group: { _id: '$userId', count: { $sum: 1 } } },
+      ]),
+
+      // Liked Reels count per user
+      Reel.aggregate([
+        { $match: { 'likes.userId': { $in: userIds } } },
+        { $unwind: '$likes' },
+        { $match: { 'likes.userId': { $in: userIds } } },
+        { $group: { _id: '$likes.userId', count: { $sum: 1 } } },
+      ]),
+
+      // Liked Designs count per user
+      Design.aggregate([
+        { $match: { 'likes.userId': { $in: userIds } } },
+        { $unwind: '$likes' },
+        { $match: { 'likes.userId': { $in: userIds } } },
+        { $group: { _id: '$likes.userId', count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    // Map aggregates to user records
+    const bookingMap = new Map(bookingAggs.map((b) => [String(b._id), b]));
+    const addressMap = new Map(addressCounts.map((a) => [String(a._id), a.count]));
+    const likedReelsMap = new Map(likedReelCounts.map((r) => [String(r._id), r.count]));
+    const likedDesignsMap = new Map(likedDesignCounts.map((d) => [String(d._id), d.count]));
+
+    const enrichedUsers = users.map((u) => {
+      const uIdStr = String(u._id);
+      const bStats = bookingMap.get(uIdStr) || { totalBookings: 0, completedBookings: 0, totalSpent: 0 };
+      return {
+        ...u,
+        totalBookings: bStats.totalBookings,
+        completedBookings: bStats.completedBookings,
+        totalSpent: bStats.totalSpent,
+        addressesCount: addressMap.get(uIdStr) || 0,
+        likedReelsCount: likedReelsMap.get(uIdStr) || 0,
+        likedDesignsCount: likedDesignsMap.get(uIdStr) || 0,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Users fetched successfully.',
+      data: {
+        users: enrichedUsers,
+        pagination: {
+          totalUsers,
+          totalPages: Math.ceil(totalUsers / limitNum) || 1,
+          currentPage: pageNum,
+          limit: limitNum,
+          activeUsersCount: activeCount,
+          blockedUsersCount: blockedCount,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 2. Get Comprehensive User 360° Profile Details (Admin)
+ * Returns full profile, all saved addresses, all bookings, all liked reels,
+ * all liked designs, all reel comments, and all custom quote inquiries.
+ * Endpoint: GET /api/auth/admin/users/:userId/details or GET /api/auth/admin/users/:userId
+ */
+async function getUserDetailsAdmin(req, res, next) {
+  try {
+    const { userId, id } = req.params;
+    const targetUserId = userId || id;
+
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format.',
+      });
+    }
+
+    const userObjId = new mongoose.Types.ObjectId(targetUserId);
+
+    // 1. Fetch User Profile
+    const user = await User.findById(userObjId).select('-password').lean();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found.',
+      });
+    }
+
+    // 2. Fetch all related collections in parallel for maximum speed
+    const [
+      addresses,
+      bookings,
+      likedReelsRaw,
+      likedDesignsRaw,
+      reelComments,
+      inquiries,
+    ] = await Promise.all([
+      // Saved Addresses
+      UserAddress.find({ userId: userObjId, isActive: true })
+        .sort({ isDefault: -1, createdAt: -1 })
+        .lean(),
+
+      // Bookings History
+      Booking.find({ userId: userObjId })
+        .sort({ createdAt: -1 })
+        .select(
+          'bookingNumber bookingType brideName groomName eventName totalAmount paidAmount remainingAmount subtotal status paymentStatus selectedDesigns selectedPackage bookingSlots addressSnapshot createdAt updatedAt'
+        )
+        .lean(),
+
+      // Liked Reels (populate reel info and user's like timestamp)
+      Reel.find({ 'likes.userId': userObjId })
+        .select('title description thumbnail video duration likeCount viewCount shareCount commentCount isPublished publishedAt createdAt likes')
+        .lean(),
+
+      // Liked Designs
+      Design.find({ 'likes.userId': userObjId })
+        .select('title slug designCode category subCategory price discountedPrice coverImage images isPublished likeCount viewCount complexity createdAt likes')
+        .lean(),
+
+      // Comments by this user on Reels
+      Reel.aggregate([
+        { $match: { 'comments.userId': userObjId } },
+        { $unwind: '$comments' },
+        { $match: { 'comments.userId': userObjId } },
+        {
+          $project: {
+            reelId: '$_id',
+            reelTitle: '$title',
+            reelThumbnail: '$thumbnail.url',
+            commentId: '$comments._id',
+            text: '$comments.text',
+            createdAt: '$comments.createdAt',
+            updatedAt: '$comments.updatedAt',
+          },
+        },
+        { $sort: { createdAt: -1 } },
+      ]),
+
+      // Custom Plan / Quote Inquiries by this user
+      PlanInquiry.find({
+        $or: [{ user: userObjId }, { phone: user.phone }],
+      })
+        .sort({ createdAt: -1 })
+        .select('name phone email projectTitle requestType pricingPlan quotedPrice adminResponse status createdAt')
+        .lean(),
+    ]);
+
+    // Format Liked Reels with likedAt timestamp
+    const likedReels = likedReelsRaw.map((r) => {
+      const userLikeObj = r.likes?.find((l) => String(l.userId) === String(userObjId));
+      return {
+        _id: r._id,
+        title: r.title,
+        description: r.description,
+        thumbnail: r.thumbnail?.url || null,
+        videoUrl: r.video?.url || null,
+        duration: r.video?.duration || 0,
+        likeCount: r.likeCount || 0,
+        viewCount: r.viewCount || 0,
+        shareCount: r.shareCount || 0,
+        commentCount: r.commentCount || 0,
+        isPublished: r.isPublished,
+        likedAt: userLikeObj?.likedAt || r.createdAt,
+        createdAt: r.createdAt,
+      };
+    });
+
+    // Format Liked Designs with likedAt timestamp
+    const likedDesigns = likedDesignsRaw.map((d) => {
+      const userLikeObj = d.likes?.find((l) => String(l.userId) === String(userObjId));
+      return {
+        _id: d._id,
+        title: d.title,
+        slug: d.slug,
+        designCode: d.designCode,
+        category: d.category,
+        subCategory: d.subCategory,
+        price: d.price,
+        discountedPrice: d.discountedPrice,
+        coverImage: d.coverImage,
+        isPublished: d.isPublished,
+        likeCount: d.likeCount || 0,
+        viewCount: d.viewCount || 0,
+        complexity: d.complexity,
+        likedAt: userLikeObj?.likedAt || d.createdAt,
+        createdAt: d.createdAt,
+      };
+    });
+
+    // Summary calculations
+    const totalSpent = bookings.reduce((sum, b) => {
+      if (!['cancelled', 'rejected'].includes(b.status)) {
+        return sum + (b.paidAmount || b.totalAmount || 0);
+      }
+      return sum;
+    }, 0);
+
+    const pendingPayment = bookings.reduce((sum, b) => {
+      if (!['cancelled', 'rejected', 'completed'].includes(b.status)) {
+        return sum + (b.remainingAmount || 0);
+      }
+      return sum;
+    }, 0);
+
+    const completedBookingsCount = bookings.filter((b) => b.status === 'completed').length;
+
+    const profile360 = {
+      user,
+      summary: {
+        totalBookings: bookings.length,
+        completedBookings: completedBookingsCount,
+        totalSpent,
+        pendingPayment,
+        totalAddresses: addresses.length,
+        totalLikedReels: likedReels.length,
+        totalLikedDesigns: likedDesigns.length,
+        totalComments: reelComments.length,
+        totalInquiries: inquiries.length,
+      },
+      addresses,
+      bookings,
+      likedReels,
+      likedDesigns,
+      comments: reelComments,
+      inquiries,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: `360° Profile details for ${user.name || user.phone} fetched successfully.`,
+      data: profile360,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 3. Block / Unblock User Account (Admin)
+ * Endpoint: PATCH /api/auth/admin/users/:userId/toggle-block or PATCH /api/auth/admin/users/:userId/status
+ */
+async function toggleBlockUserAdmin(req, res, next) {
+  try {
+    const adminId = req.user._id || req.user.id;
+    const { userId, id } = req.params;
+    const targetUserId = userId || id;
+
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format.',
+      });
+    }
+
+    // Prevent blocking self
+    if (String(adminId) === String(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Action not allowed: Admin cannot block their own account.',
+      });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found.',
+      });
+    }
+
+    // Update status
+    if (req.body.isActive !== undefined) {
+      user.isActive = Boolean(req.body.isActive);
+    } else {
+      user.isActive = !user.isActive;
+    }
+
+    await user.save();
+
+    // Invalidate Redis user session & cache immediately
+    try {
+      await redisService.del(`user:${targetUserId}`);
+    } catch (cacheErr) {
+      console.error('[UserAdmin] Cache invalidation warning:', cacheErr.message);
+    }
+
+    const actionText = user.isActive ? 'unblocked and activated' : 'blocked and deactivated';
+
+    return res.status(200).json({
+      success: true,
+      message: `User account (${user.name || user.phone}) has been ${actionText} successfully.`,
+      data: {
+        userId: user._id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        isActive: user.isActive,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 4. Delete User Account (Admin)
+ * Endpoint: DELETE /api/auth/admin/users/:userId
+ */
+async function deleteUserAccountAdmin(req, res, next) {
+  try {
+    const adminId = req.user._id || req.user.id;
+    const { userId, id } = req.params;
+    const targetUserId = userId || id;
+
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format.',
+      });
+    }
+
+    // Prevent deleting self
+    if (String(adminId) === String(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Action not allowed: Admin cannot delete their own account.',
+      });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found or already deleted.',
+      });
+    }
+
+    const deletedUserName = user.name || user.phone;
+
+    // Delete user and associated addresses
+    await Promise.all([
+      User.findByIdAndDelete(targetUserId),
+      UserAddress.deleteMany({ userId: targetUserId }),
+      redisService.del(`user:${targetUserId}`),
+      redisService.del(`user:addresses:${targetUserId}`),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: `User account '${deletedUserName}' and all associated profile data have been permanently deleted.`,
+      data: {
+        deletedUserId: targetUserId,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   signup,
   login,
@@ -736,4 +1200,9 @@ module.exports = {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  // Admin User Controllers
+  getAllUsersAdmin,
+  getUserDetailsAdmin,
+  toggleBlockUserAdmin,
+  deleteUserAccountAdmin,
 };
