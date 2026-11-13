@@ -51,7 +51,7 @@ async function startServer() {
     });
 
     // 5. Start HTTP server
-    server.listen(config.port, () => {
+    server.listen(config.port, '0.0.0.0', () => {
       console.log(`===============================================`);
       console.log(`🚀 Server running on port http://localhost:${config.port}`);
       console.log(`📖 API Documentation: http://localhost:${config.port}/api-docs`);
