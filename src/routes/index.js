@@ -25,6 +25,7 @@ router.use('/design', designRoutes);
 router.use('/reels', reelRoutes);
 router.use('/pricing', pricingRoutes);
 router.use('/faqs', faqRoutes);
+router.use('/faq', faqRoutes);
 router.use('/products', productRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/health', healthRoutes);

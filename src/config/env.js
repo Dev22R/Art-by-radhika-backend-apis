@@ -37,6 +37,18 @@ if (!redisUrl) {
   redisUrl = `rediss://default:${rawUpstashToken}@${upstashHost}:${redisPort}`;
 }
 
+// Parse CORS origin: supports wildcard '*', boolean 'true', single origin, or comma-separated list
+const rawCorsOrigin = (process.env.CORS_ORIGIN || '*').trim();
+let corsOrigin;
+if (!rawCorsOrigin || rawCorsOrigin === '*' || rawCorsOrigin.toLowerCase() === 'true') {
+  // Reflect origin to allow credentials (cookies, auth headers) from any client origin without violating CORS spec
+  corsOrigin = true;
+} else if (rawCorsOrigin.includes(',')) {
+  corsOrigin = rawCorsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+} else {
+  corsOrigin = rawCorsOrigin;
+}
+
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '5000', 10),
@@ -71,7 +83,7 @@ const config = {
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: corsOrigin,
   },
 
   rateLimit: {

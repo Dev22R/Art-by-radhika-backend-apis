@@ -16,7 +16,7 @@ router.get('/', faqController.getFaqsPublic);
 router.get('/:id', faqController.getFaqById);
 
 // Vote FAQ as Helpful or Not Helpful
-router.post('/:id/vote', faqController.voteFaqHelpful);
+router.post('/:id/vote', protect, faqController.voteFaqHelpful);
 
 // ==========================================
 // ADMIN ROUTES (Protected)
