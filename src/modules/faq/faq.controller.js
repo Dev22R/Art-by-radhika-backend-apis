@@ -13,6 +13,52 @@ async function invalidateFaqCache() {
   }
 }
 
+/**
+ * Helper function: Format FAQ item with current user's vote status
+ * Appends:
+ * - isVoted: true / false
+ * - votedUserId: userId string (if voted) or null
+ * - userVote: true (helpful) / false (not helpful) / null
+ * - votedAt: timestamp of vote (if voted) or null
+ */
+function formatFaqItem(faq, currentUserId, isAdmin = false) {
+  const plainFaq = faq && faq.toObject ? faq.toObject() : { ...faq };
+  const votes = Array.isArray(plainFaq.votes) ? plainFaq.votes : [];
+  const userIdStr = currentUserId ? String(currentUserId) : null;
+
+  let isVoted = false;
+  let votedUserId = null;
+  let userVote = null;
+  let votedAt = null;
+
+  if (userIdStr && votes.length > 0) {
+    const match = votes.find((v) => {
+      const vId = v.user?._id || v.user;
+      return String(vId) === userIdStr;
+    });
+
+    if (match) {
+      isVoted = true;
+      votedUserId = userIdStr;
+      userVote = Boolean(match.isHelpful);
+      votedAt = match.votedAt || null;
+    }
+  }
+
+  // If not admin, do not expose raw votes array to regular users
+  if (!isAdmin) {
+    delete plainFaq.votes;
+  }
+
+  return {
+    ...plainFaq,
+    isVoted,
+    votedUserId,
+    userVote,
+    votedAt: isVoted ? votedAt : null,
+  };
+}
+
 // ==========================================
 // ADMIN CONTROLLERS
 // ==========================================
@@ -203,6 +249,7 @@ async function getAllFaqsAdmin(req, res, next) {
     const [faqs, total] = await Promise.all([
       Faq.find(query)
         .populate('createdBy', 'name email')
+        .populate('votes.user', 'name phone email profileImage')
         .sort({ sortOrder: 1, createdAt: -1 })
         .skip(skip)
         .limit(limitNum),
@@ -222,6 +269,29 @@ async function getAllFaqsAdmin(req, res, next) {
       },
     ]);
 
+    // Format faqs for admin with voter summary and list
+    const formattedFaqs = faqs.map((faq) => {
+      const plain = faq.toObject ? faq.toObject() : { ...faq };
+      const votes = Array.isArray(plain.votes) ? plain.votes : [];
+      return {
+        ...plain,
+        totalVotes: votes.length,
+        voters: votes.map((v) => ({
+          user: v.user
+            ? {
+                _id: v.user._id,
+                name: v.user.name,
+                phone: v.user.phone,
+                email: v.user.email,
+                profileImage: v.user.profileImage,
+              }
+            : null,
+          isHelpful: v.isHelpful,
+          votedAt: v.votedAt,
+        })),
+      };
+    });
+
     res.json({
       success: true,
       data: {
@@ -229,12 +299,96 @@ async function getAllFaqsAdmin(req, res, next) {
           totalFaqs: total,
           categoryBreakdown: categoryStats,
         },
-        faqs,
+        faqs: formattedFaqs,
         pagination: {
           total,
           page: pageNum,
           limit: limitNum,
           pages: Math.ceil(total / limitNum),
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Get Voters Details for a Specific FAQ (Admin)
+ */
+async function getFaqVotesAdmin(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid FAQ ID format.',
+      });
+    }
+
+    const faq = await Faq.findById(id)
+      .populate('votes.user', 'name phone email profileImage')
+      .populate('createdBy', 'name email')
+      .lean();
+
+    if (!faq) {
+      return res.status(404).json({
+        success: false,
+        message: 'FAQ not found.',
+      });
+    }
+
+    const votes = Array.isArray(faq.votes) ? faq.votes : [];
+    const helpfulVoters = [];
+    const notHelpfulVoters = [];
+
+    votes.forEach((v) => {
+      const voterInfo = {
+        user: v.user
+          ? {
+              _id: v.user._id,
+              name: v.user.name,
+              phone: v.user.phone,
+              email: v.user.email,
+              profileImage: v.user.profileImage,
+            }
+          : null,
+        isHelpful: v.isHelpful,
+        votedAt: v.votedAt,
+      };
+
+      if (v.isHelpful) {
+        helpfulVoters.push(voterInfo);
+      } else {
+        notHelpfulVoters.push(voterInfo);
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        faqId: faq._id,
+        question: faq.question,
+        totalVotes: votes.length,
+        helpfulCount: faq.helpfulCount,
+        notHelpfulCount: faq.notHelpfulCount,
+        voters: {
+          all: votes.map((v) => ({
+            user: v.user
+              ? {
+                  _id: v.user._id,
+                  name: v.user.name,
+                  phone: v.user.phone,
+                  email: v.user.email,
+                  profileImage: v.user.profileImage,
+                }
+              : null,
+            isHelpful: v.isHelpful,
+            votedAt: v.votedAt,
+          })),
+          helpful: helpfulVoters,
+          notHelpful: notHelpfulVoters,
         },
       },
     });
@@ -280,44 +434,56 @@ async function reorderFaqs(req, res, next) {
 /**
  * Get Published FAQs (Public / User - Cached)
  * Supports category filtering, search, and grouped view
+ * Appends isVoted (true/false) and votedUserId for the authenticated user
  */
 async function getFaqsPublic(req, res, next) {
   try {
     const { category, search, grouped = 'false' } = req.query;
-    const cacheKey = `faqs:public:${category || 'all'}:${search || 'none'}:${grouped}`;
+    const currentUserId = req.user?._id || req.user?.id || null;
+    const isAdmin = req.user?.role === 'admin';
+
+    // Base cache key for raw FAQs (independent of requesting user)
+    const cacheKey = `faqs:public:${category || 'all'}:${search || 'none'}`;
+    let faqs;
 
     if (!search) {
       const cachedData = await redisService.get(cacheKey);
-      if (cachedData) {
-        return res.json({
-          success: true,
-          data: {
-            ...cachedData,
-            cached: true,
-          },
-        });
+      if (cachedData && Array.isArray(cachedData)) {
+        faqs = cachedData;
       }
     }
 
-    const query = { isPublished: true };
-    if (category) query.category = category.toLowerCase().trim();
+    if (!faqs) {
+      const query = { isPublished: true };
+      if (category) query.category = category.toLowerCase().trim();
 
-    if (search) {
-      query.$or = [
-        { question: { $regex: search, $options: 'i' } },
-        { answer: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } },
-      ];
+      if (search) {
+        query.$or = [
+          { question: { $regex: search, $options: 'i' } },
+          { answer: { $regex: search, $options: 'i' } },
+          { tags: { $in: [new RegExp(search, 'i')] } },
+        ];
+      }
+
+      faqs = await Faq.find(query)
+        .populate('createdBy', 'name email')
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .lean();
+
+      if (!search) {
+        await redisService.set(cacheKey, faqs, 300); // 5 minutes cache
+      }
     }
 
-    const faqs = await Faq.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
+    // Attach user-specific vote status (isVoted, votedUserId, userVote) dynamically
+    const formattedFaqs = faqs.map((faq) => formatFaqItem(faq, currentUserId, isAdmin));
 
-    let responseData = { faqs, total: faqs.length };
+    let responseData = { faqs: formattedFaqs, total: formattedFaqs.length };
 
     // Group by category if requested
     if (grouped === 'true') {
       const groupedFaqs = {};
-      faqs.forEach((item) => {
+      formattedFaqs.forEach((item) => {
         if (!groupedFaqs[item.category]) {
           groupedFaqs[item.category] = [];
         }
@@ -325,19 +491,15 @@ async function getFaqsPublic(req, res, next) {
       });
       responseData = {
         groupedFaqs,
-        total: faqs.length,
+        total: formattedFaqs.length,
       };
-    }
-
-    if (!search) {
-      await redisService.set(cacheKey, responseData, 300); // 5 minutes cache
     }
 
     res.json({
       success: true,
       data: {
         ...responseData,
-        cached: false,
+        cached: Boolean(!search && faqs),
       },
     });
   } catch (err) {
@@ -346,7 +508,8 @@ async function getFaqsPublic(req, res, next) {
 }
 
 /**
- * Get Single FAQ by ID (Public)
+ * Get Single FAQ by ID (Public / User)
+ * Appends isVoted (true/false) and votedUserId for the authenticated user
  */
 async function getFaqById(req, res, next) {
   try {
@@ -359,17 +522,31 @@ async function getFaqById(req, res, next) {
       });
     }
 
-    const faq = await Faq.findById(id).lean();
-    if (!faq || (!faq.isPublished && req.user?.role !== 'admin')) {
+    const currentUserId = req.user?._id || req.user?.id || null;
+    const isAdmin = req.user?.role === 'admin';
+
+    let query = Faq.findById(id);
+    if (isAdmin) {
+      query = query
+        .populate('votes.user', 'name phone email profileImage')
+        .populate('createdBy', 'name email');
+    } else {
+      query = query.populate('createdBy', 'name email');
+    }
+
+    const faq = await query.lean();
+    if (!faq || (!faq.isPublished && !isAdmin)) {
       return res.status(404).json({
         success: false,
         message: 'FAQ not found.',
       });
     }
 
+    const formattedFaq = formatFaqItem(faq, currentUserId, isAdmin);
+
     res.json({
       success: true,
-      data: { faq },
+      data: { faq: formattedFaq },
     });
   } catch (err) {
     next(err);
@@ -377,12 +554,28 @@ async function getFaqById(req, res, next) {
 }
 
 /**
- * Vote FAQ (Helpful / Not Helpful) (Public / User)
+ * Vote FAQ (Helpful / Not Helpful) (Protected - User / Admin)
+ * Stores user vote, supports vote toggling (un-vote) and switching
  */
 async function voteFaqHelpful(req, res, next) {
   try {
     const { id } = req.params;
     const { isHelpful } = req.body; // boolean
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to vote.',
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid FAQ ID format.',
+      });
+    }
 
     if (typeof isHelpful !== 'boolean') {
       return res.status(400).json({
@@ -391,9 +584,7 @@ async function voteFaqHelpful(req, res, next) {
       });
     }
 
-    const updateField = isHelpful ? { $inc: { helpfulCount: 1 } } : { $inc: { notHelpfulCount: 1 } };
-    const faq = await Faq.findByIdAndUpdate(id, updateField, { new: true });
-
+    const faq = await Faq.findById(id);
     if (!faq) {
       return res.status(404).json({
         success: false,
@@ -401,13 +592,71 @@ async function voteFaqHelpful(req, res, next) {
       });
     }
 
+    if (!Array.isArray(faq.votes)) {
+      faq.votes = [];
+    }
+
+    const existingVoteIndex = faq.votes.findIndex(
+      (v) => String(v.user?._id || v.user) === String(userId)
+    );
+
+    let message = '';
+    let isVoted = true;
+    let userVote = isHelpful;
+
+    if (existingVoteIndex === -1) {
+      // 1. New vote
+      faq.votes.push({
+        user: userId,
+        isHelpful,
+        votedAt: new Date(),
+      });
+
+      if (isHelpful) {
+        faq.helpfulCount = (faq.helpfulCount || 0) + 1;
+      } else {
+        faq.notHelpfulCount = (faq.notHelpfulCount || 0) + 1;
+      }
+      message = 'Thank you for your feedback!';
+    } else if (faq.votes[existingVoteIndex].isHelpful === isHelpful) {
+      // 2. Clicked same vote again -> Un-vote / Toggle off
+      if (isHelpful) {
+        faq.helpfulCount = Math.max(0, (faq.helpfulCount || 0) - 1);
+      } else {
+        faq.notHelpfulCount = Math.max(0, (faq.notHelpfulCount || 0) - 1);
+      }
+      faq.votes.splice(existingVoteIndex, 1);
+      isVoted = false;
+      userVote = null;
+      message = 'Your vote has been removed.';
+    } else {
+      // 3. Switched vote (from helpful to not-helpful or vice versa)
+      if (isHelpful) {
+        faq.notHelpfulCount = Math.max(0, (faq.notHelpfulCount || 0) - 1);
+        faq.helpfulCount = (faq.helpfulCount || 0) + 1;
+      } else {
+        faq.helpfulCount = Math.max(0, (faq.helpfulCount || 0) - 1);
+        faq.notHelpfulCount = (faq.notHelpfulCount || 0) + 1;
+      }
+      faq.votes[existingVoteIndex].isHelpful = isHelpful;
+      faq.votes[existingVoteIndex].votedAt = new Date();
+      message = 'Your vote has been updated!';
+    }
+
+    await faq.save();
+    await invalidateFaqCache();
+
     res.json({
       success: true,
-      message: 'Thank you for your feedback!',
+      message,
       data: {
         id: faq._id,
+        isVoted,
+        votedUserId: isVoted ? String(userId) : null,
+        userVote,
         helpfulCount: faq.helpfulCount,
         notHelpfulCount: faq.notHelpfulCount,
+        totalVotes: faq.votes.length,
       },
     });
   } catch (err) {
@@ -422,6 +671,7 @@ module.exports = {
   togglePublishFaq,
   deleteFaq,
   getAllFaqsAdmin,
+  getFaqVotesAdmin,
   reorderFaqs,
 
   // Public / User controllers

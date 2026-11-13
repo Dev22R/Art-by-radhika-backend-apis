@@ -177,6 +177,7 @@ app.get('/', (req, res) => {
         adminTogglePublish: 'PATCH /api/faqs/:id/publish [Admin Bearer Token]',
         adminDelete: 'DELETE /api/faqs/:id [Admin Bearer Token]',
         adminAll: 'GET /api/faqs/admin/all [Admin Bearer Token]',
+        adminVotes: 'GET /api/faqs/admin/:id/votes [Admin Bearer Token]',
         adminReorder: 'PATCH /api/faqs/admin/reorder (orders: [{ id, sortOrder }]) [Admin Bearer Token]',
       },
       products: {

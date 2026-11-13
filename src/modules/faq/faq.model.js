@@ -63,6 +63,24 @@ const faqSchema = new mongoose.Schema(
       min: 0,
     },
 
+    votes: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        isHelpful: {
+          type: Boolean,
+          required: true,
+        },
+        votedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -75,5 +93,6 @@ const faqSchema = new mongoose.Schema(
 );
 
 faqSchema.index({ isPublished: 1, category: 1, sortOrder: 1 });
+faqSchema.index({ 'votes.user': 1 });
 
 module.exports = mongoose.model('Faq', faqSchema);
