@@ -52,7 +52,7 @@ if (!rawCorsOrigin || rawCorsOrigin === '*' || rawCorsOrigin.toLowerCase() === '
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '5000', 10),
-  appName: process.env.APP_NAME || 'Redis-Express-App',
+  appName: process.env.APP_NAME || 'Art-by-Radhika',
 
   upstash: {
     url: rawUpstashUrl,
@@ -105,6 +105,17 @@ const config = {
   upload: {
     maxFileSizeBytes: parseInt(process.env.MAX_FILE_SIZE_MB || '200', 10) * 1024 * 1024, // 200MB default
     maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB || '200', 10),
+  },
+
+  email: {
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587', 10),
+    secure: process.env.EMAIL_SECURE === 'true',
+    user: (process.env.EMAIL_USER || '').trim(),
+    pass: (process.env.EMAIL_PASS || '').trim(),
+    from: (process.env.EMAIL_FROM || process.env.EMAIL_USER || 'Radhika Mehndi Studio <noreply@gmail.com>').trim(),
+    isConfigured: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
   },
 };
 

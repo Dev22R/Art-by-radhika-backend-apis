@@ -9,6 +9,9 @@ const PlanInquiry = require('../pricing/planInquiry.model');
 const config = require('../../config/env');
 const redisService = require('../../services/redis.service');
 const { uploadToCloudinary } = require('../../services/cloudinary.service');
+const crypto = require('crypto');
+const captchaService = require('../../services/captcha.service');
+const emailService = require('../../services/email.service');
 
 /**
  * Generate Access and Refresh JWT Tokens
@@ -32,28 +35,51 @@ function generateTokens(user) {
 }
 
 /**
- * Register / Signup User with Phone and Password only
+ * Register / Signup User with Email, Phone, and Password
+ * Strictly checks for duplicate phone and duplicate email
  */
 async function signup(req, res, next) {
   try {
-    const { phone, password } = req.body;
+    const { email, phone, password, name } = req.body;
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim().replace(/[\s-]/g, '');
 
-    // 1. Check if user already exists
-    const existingUser = await User.findOne({ phone });
-    if (existingUser) {
+    // 1. Check if user already exists by phone OR email
+    const [existingPhoneUser, existingEmailUser] = await Promise.all([
+      User.findOne({ phone: normalizedPhone }),
+      User.findOne({ email: normalizedEmail }),
+    ]);
+
+    if (existingPhoneUser && existingEmailUser) {
       return res.status(409).json({
         success: false,
-        message: 'An account with this mobile number already exists. Please login.',
+        message: 'An account with this mobile number and email address already exists. Please login.',
       });
     }
 
-    // 2. Create new user with phone and password
+    if (existingPhoneUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this mobile number already exists. Please use a different phone number or login.',
+      });
+    }
+
+    if (existingEmailUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email address already exists. Please use a different email or login.',
+      });
+    }
+
+    // 2. Create new user with email, phone, password, and optional name
     const user = new User({
-      phone,
+      email: normalizedEmail,
+      phone: normalizedPhone,
       password,
+      name: name ? name.trim() : null,
       role: 'user',
       isPhoneVerified: false,
-      isProfileCompleted: false,
+      isProfileCompleted: Boolean(name && name.trim().length > 0),
       isActive: true,
     });
 
@@ -65,16 +91,16 @@ async function signup(req, res, next) {
     // 4. Store refresh token in Redis (7 days TTL)
     await redisService.set(`rt:${user._id}`, tokens.refreshToken, 7 * 24 * 3600);
 
-    // 5. Cache user profile in Redis
+    // 5. Cache user profile in Redis (10 minutes)
     const userData = user.toJSON();
     await redisService.set(`user:${user._id}`, userData, 600);
 
     res.status(201).json({
       success: true,
-      message: 'Signup successful! Please complete your profile.',
+      message: 'Signup successful! Welcome to Radhika Mehndi Studio.',
       data: {
         user: userData,
-        isProfileCompleted: false,
+        isProfileCompleted: user.isProfileCompleted,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },
@@ -249,6 +275,261 @@ async function changePassword(req, res, next) {
     res.json({
       success: true,
       message: 'Password has been changed successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 1. Generate Captcha API for Forgot Password / Auth
+ * GET /api/auth/captcha or /api/auth/forgot-password/captcha
+ */
+async function getCaptcha(req, res, next) {
+  try {
+    const captchaData = await captchaService.createAndStoreCaptcha(5);
+    res.json({
+      success: true,
+      message: 'Captcha generated successfully.',
+      data: captchaData,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 2. Forgot Password Request API
+ * POST /api/auth/forgot-password or /api/auth/forgot-password/send-otp
+ * Verifies captcha, generates 6-digit numeric OTP, stores in Redis, and sends email via Nodemailer
+ */
+async function forgotPassword(req, res, next) {
+  try {
+    const { email, captchaId, captchaAnswer } = req.body;
+
+    // 1. Verify Captcha
+    const captchaResult = await captchaService.verifyCaptcha(captchaId, captchaAnswer);
+    if (!captchaResult.valid) {
+      return res.status(400).json({
+        success: false,
+        message: captchaResult.message,
+      });
+    }
+
+    // 2. Check if user exists with this email
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No user account found with this email address. Please make sure the email is registered.',
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.',
+      });
+    }
+
+    // 3. Rate limiting check (cooldown 60 seconds per email & max 5 OTP requests per hour)
+    const normalizedEmail = email.toLowerCase().trim();
+    const rateLimitKey = `forgot_otp_limit:${normalizedEmail}`;
+    const isRateLimited = await redisService.exists(rateLimitKey);
+    if (isRateLimited) {
+      return res.status(429).json({
+        success: false,
+        message: 'A verification code was recently sent. Please wait 1 minute before requesting another code.',
+      });
+    }
+
+    const hourlyLimitKey = `forgot_otp_hourly:${normalizedEmail}`;
+    const currentHourlyAttempts = await redisService.get(hourlyLimitKey);
+    if (currentHourlyAttempts && parseInt(currentHourlyAttempts, 10) >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many verification code requests for this email account. Please wait 1 hour before requesting again.',
+      });
+    }
+
+    // 4. Generate secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpKey = `forgot_otp:${normalizedEmail}`;
+    const ttlSeconds = 600; // 10 minutes
+
+    // Store in Redis
+    await redisService.set(
+      otpKey,
+      {
+        otp,
+        userId: user._id.toString(),
+        email: user.email,
+        verified: false,
+      },
+      ttlSeconds
+    );
+
+    // Set 60-second cooldown rate-limit & update hourly counter
+    await redisService.set(rateLimitKey, '1', 60);
+    const newHourlyCount = (parseInt(currentHourlyAttempts, 10) || 0) + 1;
+    await redisService.set(hourlyLimitKey, String(newHourlyCount), 3600); // 1 hour TTL
+
+    // 5. Send Email via Nodemailer
+    const emailResult = await emailService.sendPasswordResetEmail({
+      to: user.email,
+      otp,
+      userName: user.name || 'Valued Client',
+    });
+
+    res.json({
+      success: true,
+      message: 'A 6-digit verification code has been sent to your email address.',
+      data: {
+        email: user.email,
+        expiresInSeconds: ttlSeconds,
+        devPreview: emailResult.preview ? true : undefined,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 3. Verify OTP API (Optional step for frontend step-by-step wizard)
+ * POST /api/auth/forgot-password/verify-otp or /api/auth/verify-otp
+ */
+async function verifyForgotOtp(req, res, next) {
+  try {
+    const { email, otp } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+    const otpKey = `forgot_otp:${normalizedEmail}`;
+    const failKey = `forgot_otp_fails:${normalizedEmail}`;
+
+    const storedData = await redisService.get(otpKey);
+    if (!storedData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired or is invalid. Please request a new code.',
+      });
+    }
+
+    if (String(storedData.otp).trim() !== String(otp).trim()) {
+      const currentFails = (await redisService.get(failKey)) || 0;
+      const fails = parseInt(currentFails, 10) + 1;
+
+      if (fails >= 5) {
+        // Brute-force protection: Invalidate OTP after 5 wrong attempts
+        await Promise.all([
+          redisService.del(otpKey),
+          redisService.del(failKey),
+        ]);
+        return res.status(429).json({
+          success: false,
+          message: 'Too many incorrect attempts. For your security, this verification code has been invalidated. Please request a new code.',
+        });
+      }
+
+      await redisService.set(failKey, String(fails), 600);
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect verification code. ${5 - fails} attempts remaining.`,
+      });
+    }
+
+    // Correct OTP: Clear failure counter and mark as verified
+    await redisService.del(failKey);
+    await redisService.set(otpKey, { ...storedData, verified: true }, 600);
+
+    res.json({
+      success: true,
+      message: 'Verification code verified successfully. You can now set your new password.',
+      data: {
+        email: normalizedEmail,
+        verified: true,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 4. Reset Password API
+ * POST /api/auth/reset-password or /api/auth/forgot-password/reset
+ * Verifies 6-digit OTP, updates password with bcrypt, clears Redis session and OTP
+ */
+async function resetPassword(req, res, next) {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+    const otpKey = `forgot_otp:${normalizedEmail}`;
+    const failKey = `forgot_otp_fails:${normalizedEmail}`;
+
+    // 1. Retrieve OTP from Redis
+    const storedData = await redisService.get(otpKey);
+    if (!storedData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired or is invalid. Please request a new code.',
+      });
+    }
+
+    // 2. Validate OTP with brute-force protection
+    if (String(storedData.otp).trim() !== String(otp).trim()) {
+      const currentFails = (await redisService.get(failKey)) || 0;
+      const fails = parseInt(currentFails, 10) + 1;
+
+      if (fails >= 5) {
+        await Promise.all([
+          redisService.del(otpKey),
+          redisService.del(failKey),
+        ]);
+        return res.status(429).json({
+          success: false,
+          message: 'Too many incorrect attempts. For your security, this verification code has been invalidated. Please request a new code.',
+        });
+      }
+
+      await redisService.set(failKey, String(fails), 600);
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect verification code. ${5 - fails} attempts remaining.`,
+      });
+    }
+
+    // 3. Find User
+    const user = await User.findById(storedData.userId).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found.',
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.',
+      });
+    }
+
+    // 4. Update Password (pre-save hook will hash it with bcrypt automatically)
+    user.password = newPassword.trim();
+    await user.save();
+
+    // 5. Clean up Redis OTP, rate limits, failures, and existing user cache / sessions
+    await Promise.all([
+      redisService.del(otpKey),
+      redisService.del(failKey),
+      redisService.del(`forgot_otp_limit:${normalizedEmail}`),
+      redisService.del(`user:${user._id}`),
+      redisService.del(`rt:${user._id}`),
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully! You can now log in with your new password.',
     });
   } catch (err) {
     next(err);
@@ -1190,6 +1471,10 @@ module.exports = {
   login,
   adminLogin,
   changePassword,
+  getCaptcha,
+  forgotPassword,
+  verifyForgotOtp,
+  resetPassword,
   completeProfile,
   updateProfile,
   getProfile,

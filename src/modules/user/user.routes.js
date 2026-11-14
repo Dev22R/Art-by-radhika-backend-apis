@@ -4,6 +4,10 @@ const {
   login,
   adminLogin,
   changePassword,
+  getCaptcha,
+  forgotPassword,
+  verifyForgotOtp,
+  resetPassword,
   completeProfile,
   updateProfile,
   getProfile,
@@ -28,7 +32,16 @@ const {
   validateChangePassword,
   validateCompleteProfile,
   validateAddress,
+  validateForgotPassword,
+  validateVerifyOtp,
+  validateResetPassword,
 } = require('./user.middleware');
+const {
+  captchaLimiter,
+  forgotPasswordLimiter,
+  verifyOtpLimiter,
+  resetPasswordLimiter,
+} = require('../../middlewares/rateLimiter');
 
 const router = express.Router();
 
@@ -38,7 +51,7 @@ const router = express.Router();
 
 /**
  * @route   POST /api/auth/signup (also available on /api/auth/register)
- * @desc    Sign up with mobile number & password
+ * @desc    Sign up with email, mobile number & password
  * @access  Public
  */
 router.post('/signup', validateSignup, signup);
@@ -91,6 +104,53 @@ router.post('/refresh-token', refreshTokenHandler);
  * @access  Private
  */
 router.post('/logout', protect, logout);
+
+// ==========================================
+// FORGOT & RESET PASSWORD (CAPTCHA + NODEMAILER OTP)
+// ==========================================
+
+/**
+ * @route   GET /api/auth/captcha or /api/auth/forgot-password/captcha
+ * @desc    Generate a visual SVG Captcha & captchaId (Rate limited: 25 / 5 min)
+ * @access  Public
+ */
+router.get(['/captcha', '/forgot-password/captcha'], captchaLimiter, getCaptcha);
+
+/**
+ * @route   POST /api/auth/forgot-password or /api/auth/forgot-password/send-otp
+ * @desc    Verify captcha & send 6-digit OTP code to registered email via Nodemailer (Rate limited: 5 / 15 min)
+ * @access  Public
+ */
+router.post(
+  ['/forgot-password', '/forgot-password/send-otp'],
+  forgotPasswordLimiter,
+  validateForgotPassword,
+  forgotPassword
+);
+
+/**
+ * @route   POST /api/auth/forgot-password/verify-otp or /api/auth/verify-otp
+ * @desc    Verify 6-digit OTP code (Rate limited: 8 / 10 min to prevent brute force)
+ * @access  Public
+ */
+router.post(
+  ['/forgot-password/verify-otp', '/verify-otp'],
+  verifyOtpLimiter,
+  validateVerifyOtp,
+  verifyForgotOtp
+);
+
+/**
+ * @route   POST /api/auth/reset-password or /api/auth/forgot-password/reset
+ * @desc    Reset password using email, 6-digit OTP, and newPassword (Rate limited: 5 / 15 min)
+ * @access  Public
+ */
+router.post(
+  ['/reset-password', '/forgot-password/reset'],
+  resetPasswordLimiter,
+  validateResetPassword,
+  resetPassword
+);
 
 // ==========================================
 // PROFILE MANAGEMENT ROUTES

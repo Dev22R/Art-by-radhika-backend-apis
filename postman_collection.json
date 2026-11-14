@@ -120,6 +120,21 @@
       "key": "subcategorySlug",
       "value": "full-hand-to-elbow",
       "type": "string"
+    },
+    {
+      "key": "captchaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "forgotEmail",
+      "value": "user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "forgotOtp",
+      "value": "123456",
+      "type": "string"
     }
   ],
   "auth": {
@@ -286,7 +301,7 @@
       "name": "1. Authentication & Profile",
       "item": [
         {
-          "name": "1.1 Signup (Mobile & Password)",
+          "name": "1.1 Signup (Email, Mobile & Password)",
           "event": [
             {
               "listen": "test",
@@ -320,7 +335,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"9876543210\",\n  \"password\": \"Secret@12345\"\n}"
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"phone\": \"9876543210\",\n  \"password\": \"Secret@12345\",\n  \"name\": \"Radhika Sharma\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/signup",
@@ -333,7 +348,7 @@
                 "signup"
               ]
             },
-            "description": "Sign up with 10-digit mobile number and password only. Sets isProfileCompleted to false."
+            "description": "Sign up with email, 10-digit mobile number, and password. Validates and strictly prevents duplicate mobile number and duplicate email."
           }
         },
         {
@@ -704,6 +719,170 @@
             },
             "description": "Logs out user, removes refresh token from Redis, and blacklists access token."
           }
+        },
+        {
+          "name": "Forgot & Reset Password (Captcha + Nodemailer OTP)",
+          "item": [
+            {
+              "name": "1. Generate Captcha (Visual SVG)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.captchaId) {",
+                      "        pm.collectionVariables.set(\"captchaId\", json.data.captchaId);",
+                      "        console.log(\"✅ captchaId auto-saved to variables:\", json.data.captchaId);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/captcha",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "captcha"
+                  ]
+                },
+                "description": "Generate visual SVG Captcha & captchaId. The captcha is stored in Redis for 5 minutes. The image dataURL can be viewed or used directly in frontend."
+              }
+            },
+            {
+              "name": "2. Forgot Password - Send 6-Digit Code to Email",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    console.log(\"✅ 6-digit OTP code sent to email successfully!\");",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{forgotEmail}}\",\n  \"captchaId\": \"{{captchaId}}\",\n  \"captchaAnswer\": \"6PMCG\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/forgot-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "forgot-password"
+                  ]
+                },
+                "description": "Verifies captcha, validates registered user by email, generates cryptographically secure 6-digit OTP (stored in Redis for 10 minutes), and sends a beautifully styled HTML email via Nodemailer."
+              }
+            },
+            {
+              "name": "3. Verify OTP Code (Optional intermediate step)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{forgotEmail}}\",\n  \"otp\": \"{{forgotOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/forgot-password/verify-otp",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "forgot-password",
+                    "verify-otp"
+                  ]
+                },
+                "description": "Validates 6-digit verification code from Redis before showing the new password form in frontend."
+              }
+            },
+            {
+              "name": "4. Reset Password (OTP & New Password)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    console.log(\"✅ Password reset successful! You can now log in with the new password.\");",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{forgotEmail}}\",\n  \"otp\": \"{{forgotOtp}}\",\n  \"newPassword\": \"NewSecret@12345\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/reset-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "reset-password"
+                  ]
+                },
+                "description": "Verifies 6-digit OTP code, hashes new password using bcrypt, deletes OTP from Redis, and clears any existing user login tokens/cache."
+              }
+            }
+          ]
         }
       ]
     },
@@ -2445,7 +2624,14 @@
               "name": "1.4 Vote FAQ (Helpful / Not Helpful)",
               "request": {
                 "auth": {
-                  "type": "noauth"
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
                 },
                 "method": "POST",
                 "header": [
@@ -2470,7 +2656,7 @@
                     "vote"
                   ]
                 },
-                "description": "User votes whether the FAQ was helpful or not."
+                "description": "User votes whether the FAQ was helpful or not (true/false). Requires Bearer token. Returns isVoted, votedUserId, userVote, and supports toggle-off / switching."
               }
             }
           ]
@@ -2696,6 +2882,37 @@
                   ]
                 },
                 "description": "Permanently delete an FAQ."
+              }
+            },
+            {
+              "name": "2.7 Get FAQ Voters Details (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/{{faqId}}/votes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "faqs",
+                    "admin",
+                    "{{faqId}}",
+                    "votes"
+                  ]
+                },
+                "description": "Admin endpoint to view full list of users who voted on this FAQ (name, phone, email, profileImage, isHelpful, votedAt)."
               }
             }
           ]

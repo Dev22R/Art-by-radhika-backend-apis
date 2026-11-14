@@ -15,15 +15,30 @@ function isValidPhone(phone) {
 }
 
 /**
- * Middleware to strictly validate Signup payload (phone and password only)
+ * Middleware to strictly validate Signup payload (email, phone, and password)
  */
 function validateSignup(req, res, next) {
-  const { phone, password } = req.body;
+  const { email, phone, password, name } = req.body;
 
-  if (!phone || !password) {
+  if (!email || typeof email !== 'string' || email.trim().length === 0) {
     return res.status(400).json({
       success: false,
-      message: 'Mobile number (phone) and password are required.',
+      message: 'Email address is required.',
+    });
+  }
+
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address (e.g., user@example.com).',
+    });
+  }
+
+  if (!phone || typeof phone !== 'string' || phone.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Mobile number (phone) is required.',
     });
   }
 
@@ -34,15 +49,20 @@ function validateSignup(req, res, next) {
     });
   }
 
-  if (typeof password !== 'string' || password.length < 6) {
+  if (!password || typeof password !== 'string' || password.length < 6) {
     return res.status(400).json({
       success: false,
       message: 'Password must be at least 6 characters long.',
     });
   }
 
-  // Normalize phone
+  // Normalize fields
+  req.body.email = email.trim().toLowerCase();
   req.body.phone = phone.trim().replace(/[\s-]/g, '');
+  if (name && typeof name === 'string') {
+    req.body.name = name.trim();
+  }
+
   next();
 }
 
@@ -287,6 +307,131 @@ function validateChangePassword(req, res, next) {
   next();
 }
 
+/**
+ * Middleware to validate Forgot Password Request payload (email, captchaId, captchaAnswer)
+ */
+function validateForgotPassword(req, res, next) {
+  const { email, captchaId, captchaAnswer } = req.body;
+
+  if (!email || typeof email !== 'string' || email.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email address is required.',
+    });
+  }
+
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address.',
+    });
+  }
+
+  if (!captchaId || typeof captchaId !== 'string' || captchaId.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'captchaId is required. Please request a captcha first.',
+    });
+  }
+
+  if (!captchaAnswer || typeof captchaAnswer !== 'string' || captchaAnswer.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'captchaAnswer is required.',
+    });
+  }
+
+  req.body.email = email.trim().toLowerCase();
+  req.body.captchaId = captchaId.trim();
+  req.body.captchaAnswer = captchaAnswer.trim();
+
+  next();
+}
+
+/**
+ * Middleware to validate OTP verification payload (email, otp)
+ */
+function validateVerifyOtp(req, res, next) {
+  const { email, otp } = req.body;
+
+  if (!email || typeof email !== 'string' || email.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email address is required.',
+    });
+  }
+
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address.',
+    });
+  }
+
+  if (!otp || typeof otp !== 'string' || otp.trim().length !== 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'A valid 6-digit verification code (otp) is required.',
+    });
+  }
+
+  req.body.email = email.trim().toLowerCase();
+  req.body.otp = otp.trim();
+
+  next();
+}
+
+/**
+ * Middleware to validate Reset Password payload (email, otp, newPassword)
+ */
+function validateResetPassword(req, res, next) {
+  const { email, otp, newPassword } = req.body;
+
+  if (!email || typeof email !== 'string' || email.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email address is required.',
+    });
+  }
+
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address.',
+    });
+  }
+
+  if (!otp || typeof otp !== 'string' || otp.trim().length !== 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'A valid 6-digit verification code (otp) is required.',
+    });
+  }
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'newPassword is required.',
+    });
+  }
+
+  if (newPassword.trim().length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'newPassword must be at least 6 characters long.',
+    });
+  }
+
+  req.body.email = email.trim().toLowerCase();
+  req.body.otp = otp.trim();
+  req.body.newPassword = newPassword.trim();
+
+  next();
+}
+
 module.exports = {
   isValidPhone,
   validateSignup,
@@ -295,6 +440,9 @@ module.exports = {
   validateChangePassword,
   validateCompleteProfile,
   validateAddress,
+  validateForgotPassword,
+  validateVerifyOtp,
+  validateResetPassword,
   protect,
   authorize,
 };

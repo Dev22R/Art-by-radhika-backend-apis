@@ -68,7 +68,7 @@ app.get('/', (req, res) => {
     healthCheck: '/api/health',
     endpoints: {
       auth: {
-        signup: 'POST /api/auth/signup (phone, password)',
+        signup: 'POST /api/auth/signup (email, phone, password)',
         login: 'POST /api/auth/login (phone, password)',
         adminLogin: 'POST /api/auth/admin/login (email / phone, password)',
         adminChangePassword: 'PUT /api/auth/admin/change-password (newPassword) [Admin Bearer Token]',
@@ -78,6 +78,10 @@ app.get('/', (req, res) => {
         me: 'GET /api/auth/me [Bearer Token]',
         refreshToken: 'POST /api/auth/refresh-token (refreshToken)',
         logout: 'POST /api/auth/logout [Bearer Token]',
+        getCaptcha: 'GET /api/auth/captcha',
+        forgotPassword: 'POST /api/auth/forgot-password (email, captchaId, captchaAnswer)',
+        verifyOtp: 'POST /api/auth/forgot-password/verify-otp (email, otp)',
+        resetPassword: 'POST /api/auth/reset-password (email, otp, newPassword)',
       },
       addresses: {
         addAddress: 'POST /api/auth/addresses [Bearer Token]',
