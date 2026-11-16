@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const redisService = require('./redis.service');
 
 /**
@@ -68,8 +68,8 @@ function generateSvgCaptcha(length = 5) {
  */
 async function createAndStoreCaptcha(length = 5) {
   const { text, svg, dataUrl } = generateSvgCaptcha(length);
-  const captchaId = uuidv4();
-  const ttlSeconds = 3000; // 5 minutes
+  const captchaId = crypto.randomUUID();
+  const ttlSeconds = 300; // 5 minutes
 
   // Store lowercase answer in Redis
   await redisService.set(`captcha:${captchaId}`, text.toLowerCase(), ttlSeconds);
