@@ -135,6 +135,16 @@
       "key": "forgotOtp",
       "value": "123456",
       "type": "string"
+    },
+    {
+      "key": "testimonialId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "myFeedbackId",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -3964,6 +3974,768 @@
                   ]
                 },
                 "description": "Delete a subcategory."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Testimonials & Client Feedback Module (User Submissions, Admin Approval & Redis Caching)",
+      "description": "Complete module for Testimonials and Client Feedbacks. Users can submit reviews (pending stage), track their approval status, update while pending (blocked once approved), and delete anytime. Admins can create showcase reviews, approve/reject user feedbacks, toggle active/featured status, and delete.",
+      "item": [
+        {
+          "name": "1. Public / Visitor Testimonials (Cached in Redis)",
+          "description": "Public endpoints accessible by anyone. Returns ONLY approved & active testimonials, cached in Upstash/Redis for 5 minutes with real-time rating statistics.",
+          "item": [
+            {
+              "name": "1.1 Get All Approved & Active Testimonials (With Rating Stats & Pagination)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials?page=1&limit=10&sort=latest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "sort",
+                      "value": "latest",
+                      "description": "latest | oldest | rating_high | rating_low | featured"
+                    }
+                  ]
+                },
+                "description": "Returns all live testimonials that have been approved by admin and marked active. Includes aggregate stats (average rating, total count, 5-star to 1-star distribution). Cached in Redis."
+              }
+            },
+            {
+              "name": "1.2 Filter Testimonials by Rating & Search",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials?rating=5&search=bridal",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials"
+                  ],
+                  "query": [
+                    {
+                      "key": "rating",
+                      "value": "5",
+                      "description": "Filter by specific star rating (1 to 5)"
+                    },
+                    {
+                      "key": "search",
+                      "value": "bridal",
+                      "description": "Search keywords in name, designation, message, or company"
+                    }
+                  ]
+                },
+                "description": "Filter testimonials by star rating (e.g. 5 stars) or search query terms."
+              }
+            },
+            {
+              "name": "1.3 Get Single Testimonial by ID",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/{{testimonialId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "{{testimonialId}}"
+                  ]
+                },
+                "description": "Fetches a single testimonial by ID (only visible publicly if approved and active)."
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. User Feedback Lifecycle (Submit, Review Status, Edit Pending, Delete)",
+          "description": "Client / User feedback journey: Submit feedback (saved in pending status) -> Track status in My Feedbacks -> Edit while in pending stage -> Blocked from editing once approved -> Delete anytime.",
+          "item": [
+            {
+              "name": "2.1 User Submit Feedback (Raw JSON - Pending Stage)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.testimonial && json.data.testimonial._id) {",
+                      "        pm.collectionVariables.set('testimonialId', json.data.testimonial._id);",
+                      "        pm.collectionVariables.set('myFeedbackId', json.data.testimonial._id);",
+                      "        console.log('Saved feedback ID:', json.data.testimonial._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": 5,\n  \"message\": \"Radhika made my bridal mehndi look magical! The stain was dark mahogany and stayed for 2 weeks. Very courteous and skilled artist.\",\n  \"designation\": \"Bride\",\n  \"company\": \"Udaipur Destination Wedding\",\n  \"name\": \"Pooja Sharma\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/feedback",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "feedback"
+                  ]
+                },
+                "description": "Authenticated user submits feedback. By default it is created with status: \"pending\" so the admin can review before it goes live."
+              }
+            },
+            {
+              "name": "2.2 User Submit Feedback (Multipart Form-Data with Avatar Upload)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.testimonial && json.data.testimonial._id) {",
+                      "        pm.collectionVariables.set('testimonialId', json.data.testimonial._id);",
+                      "        pm.collectionVariables.set('myFeedbackId', json.data.testimonial._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "message",
+                      "value": "Unbelievable detailing and portrait work! Best mehndi service ever.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "rating",
+                      "value": "5",
+                      "type": "text"
+                    },
+                    {
+                      "key": "designation",
+                      "value": "Bride",
+                      "type": "text"
+                    },
+                    {
+                      "key": "company",
+                      "value": "Jaipur Palace Wedding",
+                      "type": "text"
+                    },
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/feedback",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "feedback"
+                  ]
+                },
+                "description": "User submits feedback along with an avatar/photo upload directly stored in Cloudinary."
+              }
+            },
+            {
+              "name": "2.3 Get My Submitted Feedbacks & Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/my",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "my"
+                  ]
+                },
+                "description": "User checks their submitted feedbacks. Returns status badge (pending / approved / rejected) and flag \"canEdit\" (true only when status is pending)."
+              }
+            },
+            {
+              "name": "2.4 Update My Feedback (Allowed when Pending)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": 5,\n  \"message\": \"Updated review: Absolutely stunning work and great aftercare tips! Truly the best artist in town.\",\n  \"designation\": \"Royal Bride 2026\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/my/{{myFeedbackId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "my",
+                    "{{myFeedbackId}}"
+                  ]
+                },
+                "description": "User can modify their feedback message, rating, and designation while the feedback is still in \"pending\" status."
+              }
+            },
+            {
+              "name": "2.5 Attempt Update on Approved Feedback (Verifies Block / Updating Closed)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Trying to edit an approved review which should fail with 400.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/my/{{myFeedbackId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "my",
+                    "{{myFeedbackId}}"
+                  ]
+                },
+                "description": "Validates strict business rule: Once a feedback is approved by admin, updating is closed! Returns 400 Bad Request with message that user can only delete."
+              }
+            },
+            {
+              "name": "2.6 Delete My Feedback (Allowed at Any Stage)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/my/{{myFeedbackId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "my",
+                    "{{myFeedbackId}}"
+                  ]
+                },
+                "description": "User can delete their own feedback at any time, whether it is pending, approved, or rejected. If approved, invalidates Redis cache."
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Admin Testimonials Moderation & Management",
+          "description": "Full administrative control over testimonials: Review pending submissions, Approve/Reject, Toggle active/featured, Create direct showcase reviews, and Delete.",
+          "item": [
+            {
+              "name": "3.1 Admin: Get All Testimonials (With Metrics & Status Filters)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/all?page=1&limit=10&sort=latest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "sort",
+                      "value": "latest",
+                      "description": "latest | oldest | rating_high | rating_low | pending_first"
+                    }
+                  ]
+                },
+                "description": "Admin view of all testimonials across all statuses (pending, approved, rejected) with total counts and metrics."
+              }
+            },
+            {
+              "name": "3.2 Admin: Filter Pending Submissions for Review",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/all?status=pending",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "pending",
+                      "description": "Filter only pending items awaiting moderation"
+                    }
+                  ]
+                },
+                "description": "Quick filter for Admin to review user feedbacks waiting for approval."
+              }
+            },
+            {
+              "name": "3.3 Admin: Create Direct Showcase Testimonial",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.testimonial && json.data.testimonial._id) {",
+                      "        pm.collectionVariables.set('testimonialId', json.data.testimonial._id);",
+                      "        console.log('Saved admin testimonial ID:', json.data.testimonial._id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ananya Singhania\",\n  \"designation\": \"Celebrity Bride\",\n  \"company\": \"Jaipur Royal Palace Wedding\",\n  \"rating\": 5,\n  \"message\": \"The portrait detailing of both our faces was perfection. Pure organic henna with zero chemicals. Highly recommended!\",\n  \"avatar\": \"https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=250\",\n  \"status\": \"approved\",\n  \"isActive\": true,\n  \"isFeatured\": true,\n  \"sortOrder\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin"
+                  ]
+                },
+                "description": "Admin directly creates a testimonial for showcase (defaults to status: \"approved\" and active)."
+              }
+            },
+            {
+              "name": "3.4 Admin: Approve User Feedback (Live for Public)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"approved\",\n  \"adminNotes\": \"Verified client booking. Approved for public showcase.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}",
+                    "status"
+                  ]
+                },
+                "description": "Admin approves a pending user feedback. Sets approvedBy, approvedAt, and clears Redis cache so it immediately appears in GET /api/testimonials."
+              }
+            },
+            {
+              "name": "3.5 Admin: Reject User Feedback with Reason",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"rejected\",\n  \"rejectionReason\": \"Feedback contains inappropriate promotional text or invalid details.\",\n  \"adminNotes\": \"Rejected due to content guidelines.\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}",
+                    "status"
+                  ]
+                },
+                "description": "Admin rejects user feedback and provides a rejectionReason so the user understands why."
+              }
+            },
+            {
+              "name": "3.6 Admin: Toggle Active / Inactive Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}/toggle-active",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}",
+                    "toggle-active"
+                  ]
+                },
+                "description": "Toggles visibility (isActive: true/false). Inactive testimonials will not appear on the public website."
+              }
+            },
+            {
+              "name": "3.7 Admin: Toggle Featured Spotlight Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}/toggle-featured",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}",
+                    "toggle-featured"
+                  ]
+                },
+                "description": "Toggles isFeatured flag (true/false) for highlighting top reviews on the home page."
+              }
+            },
+            {
+              "name": "3.8 Admin: Update Testimonial Details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ananya Singhania\",\n  \"designation\": \"Celebrity Bride 2026\",\n  \"rating\": 5,\n  \"message\": \"Updated review content with custom styling.\",\n  \"isFeatured\": true,\n  \"sortOrder\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}"
+                  ]
+                },
+                "description": "Admin updates any field of any testimonial."
+              }
+            },
+            {
+              "name": "3.9 Admin: Get Single Testimonial Full Details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}"
+                  ]
+                },
+                "description": "Fetches complete testimonial record including user profile, creator, approvedBy, audit dates, and admin notes."
+              }
+            },
+            {
+              "name": "3.10 Admin: Delete Testimonial",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/testimonials/admin/{{testimonialId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "testimonials",
+                    "admin",
+                    "{{testimonialId}}"
+                  ]
+                },
+                "description": "Admin deletes any testimonial. Automatically cleans up Cloudinary avatar image and invalidates Redis cache."
               }
             }
           ]

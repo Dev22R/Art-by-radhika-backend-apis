@@ -9,6 +9,7 @@ const pricingRoutes = require('../modules/pricing/pricing.routes');
 const faqRoutes = require('../modules/faq/faq.routes');
 const designRoutes = require('../modules/design/design.routes');
 const categoryRoutes = require('../modules/category/category.routes');
+const testimonialRoutes = require('../modules/testimonials/testimonial.routes');
 const uploadRoutes = require('./upload.routes');
 const dashboardRoutes = require('../modules/dashboard/dashboard.routes');
 
@@ -26,6 +27,8 @@ router.use('/reels', reelRoutes);
 router.use('/pricing', pricingRoutes);
 router.use('/faqs', faqRoutes);
 router.use('/faq', faqRoutes);
+router.use('/testimonials', testimonialRoutes);
+router.use('/testimonial', testimonialRoutes);
 router.use('/products', productRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/health', healthRoutes);
