@@ -145,6 +145,26 @@
       "key": "myFeedbackId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "estimatorCoverageId",
+      "value": "full-elbow",
+      "type": "string"
+    },
+    {
+      "key": "estimatorGuests",
+      "value": "5",
+      "type": "string"
+    },
+    {
+      "key": "estimatorConfigVersion",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "estimatorEnquiryId",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -4736,6 +4756,498 @@
                   ]
                 },
                 "description": "Admin deletes any testimonial. Automatically cleans up Cloudinary avatar image and invalidates Redis cache."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9.1 Henna Time & Cost Estimator (Public Calculator & Admin Rules Management)",
+      "description": "Production-grade backend module for Henna Time & Cost Estimator widget. Features dynamic integer paise calculations, time range estimation, customer enquiry quote capture, optimistic concurrency control, audit logs, and rollback.",
+      "item": [
+        {
+          "name": "1. Public / Visitor Estimator",
+          "description": "Public endpoints accessible by anyone. Features strict privacy guards (no prices or margins exposed in config) and server-side quote recalculation.",
+          "item": [
+            {
+              "name": "1.1 Get Estimator Public Config (Coverages, Max Guests, Currency)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.coverages && json.data.coverages.length > 0) {",
+                      "        pm.collectionVariables.set('estimatorCoverageId', json.data.coverages[0].id);",
+                      "        console.log('Saved estimatorCoverageId:', json.data.coverages[0].id);",
+                      "    }",
+                      "    if (json.data && json.data.configVersion) {",
+                      "        pm.collectionVariables.set('estimatorConfigVersion', String(json.data.configVersion));",
+                      "        console.log('Saved estimatorConfigVersion:', json.data.configVersion);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/estimator/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "estimator",
+                    "config"
+                  ]
+                },
+                "description": "Returns active coverages (id, label, description), maxGuests, includesText, currency, and enabled flag. Strict privacy: does NOT expose base prices, discount slabs, or margins."
+              }
+            },
+            {
+              "name": "1.2 Calculate Time & Cost (Package Breakdown)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coverageId\": \"{{estimatorCoverageId}}\",\n  \"guests\": 5\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/estimator/calculate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "estimator",
+                    "calculate"
+                  ]
+                },
+                "description": "Calculates total price (in integer paise and formatted INR), duration range (e.g. \"5 - 6 hrs\"), bulk discount on guest charges, tax, and itemized breakdown. Rate limited to ~60/min."
+              }
+            },
+            {
+              "name": "1.3 Submit Package Enquiry (Server Re-Calculates Price)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.enquiryId) {",
+                      "        pm.collectionVariables.set('estimatorEnquiryId', json.data.enquiryId);",
+                      "        console.log('Saved estimatorEnquiryId:', json.data.enquiryId);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Pooja Sharma\",\n  \"phone\": \"+919876543210\",\n  \"email\": \"pooja@example.com\",\n  \"eventDate\": \"2026-12-15\",\n  \"location\": \"Udaipur, Rajasthan\",\n  \"notes\": \"Customized bride-groom portraits on both palms\",\n  \"coverageId\": \"{{estimatorCoverageId}}\",\n  \"guests\": 5,\n  \"clientAmount\": 5000\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/estimator/enquiry",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "estimator",
+                    "enquiry"
+                  ]
+                },
+                "description": "Submits customer enquiry. Server independently recalculates the price (ignoring any client-sent price overrides) and stores an immutable quote snapshot with configVersion. Rate limited to ~5/min."
+              }
+            },
+            {
+              "name": "1.4 Validation Error Demo (Invalid Guests Count)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coverageId\": \"{{estimatorCoverageId}}\",\n  \"guests\": -3\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/estimator/calculate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "estimator",
+                    "calculate"
+                  ]
+                },
+                "description": "Demonstrates validation error rejection. Returns 400 Bad Request with { error: { code: \"VALIDATION_ERROR\", message: \"...\" } }."
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Admin Estimator Rules & Rollback",
+          "description": "Protected administrative endpoints. Controls all pricing rules, coverages, guest charges, bulk discounts, tax, maintenance switch, version history, and rollbacks.",
+          "item": [
+            {
+              "name": "2.1 Admin: Get Full Configuration (With Prices & Rules)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.version) {",
+                      "        pm.collectionVariables.set('estimatorConfigVersion', String(json.data.version));",
+                      "        console.log('Updated estimatorConfigVersion to:', json.data.version);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "config"
+                  ]
+                },
+                "description": "Admin retrieves complete pricing rules: coverage options with basePrice (in paise) and baseMinutes, global guest rules, bulk discount slabs, minimum order total, and tax settings."
+              }
+            },
+            {
+              "name": "2.2 Admin: Update Configuration (Optimistic Lock Version Check)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.version) {",
+                      "        pm.collectionVariables.set('estimatorConfigVersion', String(json.data.version));",
+                      "        console.log('Config updated! New version:', json.data.version);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"version\": {{estimatorConfigVersion}},\n  \"currency\": \"INR\",\n  \"coverages\": [\n    {\n      \"id\": \"wrist\",\n      \"label\": \"Wrist & Palms\",\n      \"description\": \"Intricate design extending from fingertips to wrists.\",\n      \"basePrice\": 250000,\n      \"baseMinutes\": 60,\n      \"active\": true,\n      \"sortOrder\": 1\n    },\n    {\n      \"id\": \"forearm\",\n      \"label\": \"Forearms Both Sides\",\n      \"description\": \"Traditional motifs covering palms, wrists, and halfway up forearms.\",\n      \"basePrice\": 450000,\n      \"baseMinutes\": 120,\n      \"active\": true,\n      \"sortOrder\": 2\n    },\n    {\n      \"id\": \"full-elbow\",\n      \"label\": \"Full Elbow Bridal\",\n      \"description\": \"Signature bridal layout covering fingers to elbows on both sides.\",\n      \"basePrice\": 700000,\n      \"baseMinutes\": 180,\n      \"active\": true,\n      \"sortOrder\": 3\n    },\n    {\n      \"id\": \"full-bridal-feet\",\n      \"label\": \"Royal Arms + Feet\",\n      \"description\": \"Full elbow arms plus matching intricate bridal feet work.\",\n      \"basePrice\": 1100000,\n      \"baseMinutes\": 300,\n      \"active\": true,\n      \"sortOrder\": 4\n    }\n  ],\n  \"guestRules\": {\n    \"pricePerGuest\": 50000,\n    \"minutesPerGuest\": 30,\n    \"maxGuests\": 15\n  },\n  \"bulkDiscounts\": [\n    { \"minGuests\": 5, \"percent\": 10 },\n    { \"minGuests\": 10, \"percent\": 15 }\n  ],\n  \"minimumTotal\": 0,\n  \"tax\": { \"percent\": 0, \"inclusive\": false },\n  \"timeBufferPercent\": 15,\n  \"includesText\": \"Includes 100% organic Rajasthani henna, clove steam & aftercare essential balm.\",\n  \"enabled\": true,\n  \"changeNote\": \"Admin adjusted rules\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "config"
+                  ]
+                },
+                "description": "Full update of pricing rules. Enforces optimistic concurrency control (version match required). Saves previous version snapshot to history with key diffs and invalidates cache."
+              }
+            },
+            {
+              "name": "2.3 Admin: Version Conflict Demo (Stale Version returns 409)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"version\": 9999,\n  \"coverages\": [\n    {\n      \"id\": \"wrist\",\n      \"label\": \"Wrist & Palms\",\n      \"basePrice\": 250000,\n      \"baseMinutes\": 60,\n      \"active\": true,\n      \"sortOrder\": 1\n    }\n  ],\n  \"guestRules\": {\n    \"pricePerGuest\": 50000,\n    \"minutesPerGuest\": 30,\n    \"maxGuests\": 15\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "config"
+                  ]
+                },
+                "description": "Demonstrates optimistic concurrency control. Sending a stale or mismatched version returns 409 Conflict with VERSION_CONFLICT code."
+              }
+            },
+            {
+              "name": "2.4 Admin: Get Configuration Version History & Diffs",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/config/history?page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "config",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Returns paginated audit log of configuration history with changeNotes, author, and old-vs-new diffs."
+              }
+            },
+            {
+              "name": "2.5 Admin: Rollback Configuration to Historical Version",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var json = pm.response.json();",
+                      "    if (json.data && json.data.version) {",
+                      "        pm.collectionVariables.set('estimatorConfigVersion', String(json.data.version));",
+                      "        console.log('Rolled back! Active version is now:', json.data.version);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/config/rollback/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "config",
+                    "rollback",
+                    "1"
+                  ]
+                },
+                "description": "Restores settings from version 1 snapshot while creating a new incrementing version and invalidating cache."
+              }
+            },
+            {
+              "name": "2.6 Admin: Preview Draft Configuration (No DB Write)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coverageId\": \"festive-special\",\n  \"guests\": 5,\n  \"config\": {\n    \"coverages\": [\n      {\n        \"id\": \"festive-special\",\n        \"label\": \"Festive Flash Special\",\n        \"description\": \"Seasonal promo deal\",\n        \"basePrice\": 350000,\n        \"baseMinutes\": 90,\n        \"active\": true,\n        \"sortOrder\": 1\n      }\n    ],\n    \"guestRules\": {\n      \"pricePerGuest\": 40000,\n      \"minutesPerGuest\": 20,\n      \"maxGuests\": 20\n    },\n    \"bulkDiscounts\": [\n      { \"minGuests\": 5, \"percent\": 20 }\n    ]\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/preview",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "preview"
+                  ]
+                },
+                "description": "Runs pure calculateEstimator against a draft configuration in memory without writing or modifying anything in the database."
+              }
+            },
+            {
+              "name": "2.7 Admin: Maintenance Switch (Disable Estimator)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"version\": {{estimatorConfigVersion}},\n  \"coverages\": [\n    {\n      \"id\": \"wrist\",\n      \"label\": \"Wrist & Palms\",\n      \"basePrice\": 250000,\n      \"baseMinutes\": 60,\n      \"active\": true,\n      \"sortOrder\": 1\n    }\n  ],\n  \"guestRules\": {\n    \"pricePerGuest\": 50000,\n    \"minutesPerGuest\": 30,\n    \"maxGuests\": 15\n  },\n  \"enabled\": false,\n  \"changeNote\": \"Disabled estimator for maintenance\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/estimator/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "estimator",
+                    "config"
+                  ]
+                },
+                "description": "Sets enabled: false. Public endpoints will immediately return 503 ESTIMATOR_MAINTENANCE until re-enabled."
               }
             }
           ]

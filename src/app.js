@@ -200,6 +200,16 @@ app.get('/', (req, res) => {
         adminToggleFeatured: 'PATCH /api/testimonials/admin/:id/toggle-featured [Admin Bearer Token]',
         adminDelete: 'DELETE /api/testimonials/admin/:id [Admin Bearer Token]',
       },
+      estimator: {
+        publicConfig: 'GET /api/v1/estimator/config (active coverages, maxGuests, currency)',
+        calculate: 'POST /api/v1/estimator/calculate (coverageId, guests) [Rate Limit ~60/min]',
+        enquiry: 'POST /api/v1/estimator/enquiry (name, phone, coverageId, guests) [Server recalculates price, Rate Limit ~5/min]',
+        adminConfig: 'GET /api/v1/admin/estimator/config [Admin Bearer Token]',
+        adminUpdateConfig: 'PUT /api/v1/admin/estimator/config (optimistic locking version check) [Admin Bearer Token]',
+        adminHistory: 'GET /api/v1/admin/estimator/config/history [Admin Bearer Token]',
+        adminRollback: 'POST /api/v1/admin/estimator/config/rollback/:version [Admin Bearer Token]',
+        adminPreview: 'POST /api/v1/admin/estimator/preview (draft calculation without saving) [Admin Bearer Token]',
+      },
       products: {
         create: 'POST /api/products',
         getAll: 'GET /api/products',
@@ -218,7 +228,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount Main API Routes
+// Mount Main API Routes (Supports /api/v1 and legacy /api prefixes)
+app.use('/api/v1', apiRoutes);
 app.use('/api', apiRoutes);
 
 // 404 Route Handler
